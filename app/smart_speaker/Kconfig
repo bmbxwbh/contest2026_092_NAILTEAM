@@ -1,0 +1,19 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config SMART_SPEAKER_APP
+	bool "AI Scene-Aware Smart Speaker app"
+	default n
+	---help---
+		AI scene-aware smart speaker: scene recognition, wakeup,
+		AI Agent, pluggable IoT HAL, anomaly alert, LVGL UI.
+
+config SMART_SPEAKER_IOT_MIOT
+	bool "Use Mihome (米家) IoT backend (requires SDK + license)"
+	default n
+	depends on SMART_SPEAKER_APP
+	---help---
+		Enable Mihome backend. Off = local-simulation backend (full demo
+		without Mihome account). 接口已按米家协议预留.
