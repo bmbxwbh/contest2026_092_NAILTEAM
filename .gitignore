@@ -1,0 +1,30 @@
+# ============================================================
+# .gitignore — BK7258 板级适配项目忽略规则
+# 注意: logs/ 下的 AI Coding 日志必须提交, 不要在此忽略!
+# ============================================================
+
+# Build artifacts
+build/
+out/
+*.o
+*.a
+*.elf
+*.hex
+*.map
+*.bin
+*.img
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# SDK (cloned for reference only)
+bk_idk/
