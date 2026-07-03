@@ -1,11 +1,191 @@
 #
-# Contest 2026 team 000 board placeholder
+# Contest 2026 team 092 - BK7258 devkit board
+#
+# AI场景感知智能音箱 - 新硬件平台适配
+# 目标芯片: BK7258 (双核 ARM Cortex-M33 480MHz + AI加速器 + 音频DSP)
 #
 
-if ARCH_BOARD_CONTEST2026_000_BOARD
+config ARCH_BOARD_CONTEST2026_092_BOARD
+	bool "BK7258 devkit (contest2026_092)"
+	select ARCH_ARM
+	select ARCH_ARMV8M
+	select ARCH_CORTEX_M33
+	select ARCH_HAVE_CMNVIC
+	select ARMV8M_HAVE_ICACHE
+	select ARMV8M_HAVE_DCACHE
+	---help---
+		BK7258 devkit 开发板适配。
+		芯片特性: 双核 Cortex-M33 @480MHz, 640KB SRAM + 16MB PSRAM,
+		WiFi6 + BLE5.4, 硬件AI加速器, 音频DSP, LCD显示, 2D图形加速。
+		本项目用于 2026 openvela AI硬件开发者大赛 AI场景感知智能音箱。
 
-config ARCH_BOARD_CONTEST2026_000_BOARD_TAG
+if ARCH_BOARD_CONTEST2026_092_BOARD
+
+config ARCH_BOARD_CONTEST2026_092_BOARD_TAG
 	string "Board tag"
-	default "contest2026_000_board"
+	default "contest2026_092_board"
+
+config ARCH_CHIP
+	string
+	default "bk7258"
+
+config ARCH_CHIP_BK7258
+	bool
+	default y
+
+# ===== Flash 存储配置 =====
+config BK7258_FLASH
+	bool "启用 BK7258 Flash 控制器"
+	default y
+	select MTD
+	---help---
+		BK7258 内置 Flash 控制器, 支持 XIP 与分区。
+		分区方案: bootloader(256KB) + kernel(1MB) + rootfs(2MB)
+		+ ai-models(2MB) + user-data(1MB)。
+
+# ===== 内存布局配置 =====
+config BK7258_FLASH_BASE
+	hex "Flash 基地址"
+	default 0x00000000
+	---help---
+		BK7258 内部 Flash 基地址。
+
+config BK7258_FLASH_SIZE
+	int "Flash 大小 (KB)"
+	default 65536
+	---help---
+		Flash 总大小, 默认 64MB (含外挂 PSRAM 映射区域)。
+
+config BK7258_SRAM_BASE
+	hex "SRAM 基地址"
+	default 0x20000000
+	---help---
+		BK7258 片内 SRAM 基地址。
+
+config BK7258_SRAM_SIZE
+	int "片内 SRAM 大小 (KB)"
+	default 640
+	---help---
+		片内 SRAM 大小, 默认 640KB。
+
+config BK7258_PSRAM_BASE
+	hex "PSRAM 基地址"
+	default 0x24000000
+	---help---
+		外挂 PSRAM 基地址 (16MB)。
+
+config BK7258_PSRAM_SIZE
+	int "PSRAM 大小 (KB)"
+	default 16384
+	---help---
+		PSRAM 大小, 默认 16MB。
+
+# ===== 主频配置 =====
+config BK7258_SYSCLK
+	int "系统主频 (MHz)"
+	default 480
+	range 24 480
+	---help---
+		Cortex-M33 主频, 最高 480MHz。
+
+# ===== AI 加速器配置 =====
+config BK7258_AI_ACCEL
+	bool "启用 BK7258 硬件 AI 加速器"
+	default y
+	---help---
+		BK7258 内置 AI 加速器, 支持 int8/int16 量化推理加速。
+		本项目用于端侧声音场景识别推理。
+
+config BK7258_AI_ACCEL_SRAM_SIZE
+	int "AI 加速器专用 SRAM 大小 (KB)"
+	default 128
+	depends on BK7258_AI_ACCEL
+	---help---
+		AI 加速器权重缓存区大小。
+
+# ===== 音频配置 =====
+config BK7258_AUDIO_DSP
+	bool "启用 BK7258 音频 DSP"
+	default y
+	---help---
+		BK7258 集成专用音频 DSP, 支持降噪(NR)、回声消除(AEC)、
+		自动增益(AGC), 适配智能音箱多麦阵列场景。
+
+config BK7258_AUDIO_CHANNELS
+	int "音频采集通道数"
+	default 2
+	range 1 4
+	depends on BK7258_AUDIO_DSP
+	---help---
+		麦克风阵列通道数, 默认 2 通道(双麦)。
+
+# ===== 网络配置 =====
+config BK7258_WIFI6
+	bool "启用 WiFi6"
+	default y
+	select ARCH_HAVE_NET
+	select NETUTILS_WIRELESS
+	---help---
+		BK7258 支持 WiFi6 (802.11ax), 用于米家IoT云端接入。
+
+config BK7258_BLE54
+	bool "启用 BLE 5.4"
+	default y
+	---help---
+		BK7258 支持蓝牙 5.4 双模, 用于设备配网与近场控制。
+
+# ===== 显示配置 =====
+config BK7258_LCD
+	bool "启用 LCD 显示"
+	default y
+	select LVGL
+	---help---
+		BK7258 devkit 板载 LCD 触控屏, 用于场景状态可视化展示。
+
+config BK7258_LCD_WIDTH
+	int "LCD 宽度 (像素)"
+	default 480
+	depends on BK7258_LCD
+
+config BK7258_LCD_HEIGHT
+	int "LCD 高度 (像素)"
+	default 320
+	depends on BK7258_LCD
+
+config BK7258_2D_ACCEL
+	bool "启用 2D 图形硬件加速"
+	default y
+	depends on BK7258_LCD
+	---help---
+		BK7258 2D 图形加速器, 保障 LVGL UI 流畅运行。
+
+# ===== 低功耗管理配置 =====
+config BK7258_PM
+	bool "启用低功耗管理"
+	default y
+	select PM
+	---help---
+		支持待机/睡眠模式, 夜间无操作时降低功耗。
+		唤醒源: 语音唤醒 / 按键 / 定时器。
+
+config BK7258_PM_WAKEUP_VOICE
+	bool "语音唤醒"
+	default y
+	depends on BK7258_PM
+	---help---
+		睡眠模式下保持语音唤醒 (低功耗 DSP 持续拾音)。
+
+# ===== 看门狗配置 =====
+config BK7258_WDT
+	bool "启用看门狗"
+	default y
+	select WATCHDOG
+	---help---
+		系统死锁时自动复位, 5秒超时。
+
+config BK7258_WDT_TIMEOUT
+	int "看门狗超时 (ms)"
+	default 5000
+	depends on BK7258_WDT
 
 endif
