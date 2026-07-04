@@ -4,43 +4,38 @@
 #include "iot_hal.h"
 #include "device_state.h"
 
-static device_entry_t *find_device(const char *name)
+static int find_device_idx(const char *name)
 {
-  int cnt; device_entry_t *devs = device_state_get_devices(&cnt);
-  for (int i = 0; i < cnt; i++)
-    if (strcmp(devs[i].name, name) == 0) return &devs[i];
-  return NULL;
+  return device_state_find_device(name);
 }
 
 bool iot_local_sim_init(void) { syslog(LOG_INFO, "IoT local-sim backend\n"); return true; }
 
 bool iot_local_sim_set_power(const char *d, bool on)
 {
-  device_entry_t *p = find_device(d);
-  if (p) { p->on = on; syslog(LOG_INFO, "[SIM] %s power=%d\n", d, on); return true; }
+  int idx = find_device_idx(d);
+  if (idx >= 0) { device_state_update_device(idx, on, -1, -1); syslog(LOG_INFO, "[SIM] %s power=%d\n", d, on); return true; }
   return false;
 }
 bool iot_local_sim_set_brightness(const char *d, int v)
 {
-  device_entry_t *p = find_device(d);
-  if (p) { p->brightness = v; p->on = (v > 0); syslog(LOG_INFO, "[SIM] %s bright=%d\n", d, v); return true; }
+  int idx = find_device_idx(d);
+  if (idx >= 0) { device_state_update_device(idx, v > 0, v, -1); syslog(LOG_INFO, "[SIM] %s bright=%d\n", d, v); return true; }
   return false;
 }
 bool iot_local_sim_set_temperature(const char *d, int t)
 {
-  device_entry_t *p = find_device(d);
-  if (p) { p->temperature = t; syslog(LOG_INFO, "[SIM] %s temp=%d\n", d, t); return true; }
+  int idx = find_device_idx(d);
+  if (idx >= 0) { device_state_update_device(idx, -1, -1, t); syslog(LOG_INFO, "[SIM] %s temp=%d\n", d, t); return true; }
   return false;
 }
 bool iot_local_sim_alert(anomaly_type_t a)
 {
   syslog(LOG_WARNING, "[SIM][ALERT] %s (buzzer on)\n", anomaly_type_name(a));
-  /* 触发蜂鸣器(底层 PWM 驱动); 此处仅日志 */
   return true;
 }
 bool iot_local_sim_report(const char *topic, int v)
 {
   syslog(LOG_INFO, "[SIM][CLOUD] %s=%d (queued)\n", topic, v);
-  /* 由云端上报任务(M9 对接)异步发送 */
   return true;
 }

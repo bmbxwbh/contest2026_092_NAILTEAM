@@ -4,6 +4,7 @@ if(CONFIG_SMART_SPEAKER_APP)
     SRCS
       src/speaker_main.c
       src/device_state.c
+      src/display_manager.c
       src/audio_pipeline.c
       src/mfcc.c
       src/scene_recog.cpp

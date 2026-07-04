@@ -40,6 +40,5 @@ uint32_t audio_pipeline_frame_count(void) { return g_frame_count; }
 int audio_pipeline_task(int argc, char *argv[])
 {
   if (!audio_pipeline_init()) return -1;
-  while (1) usleep(100000);  /* 采集由消费者驱动; 本任务保活 */
   return 0;
 }

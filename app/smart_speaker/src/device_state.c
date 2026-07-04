@@ -14,9 +14,10 @@ static const char *g_anomaly_names[ANOMALY_COUNT] =
 
 int device_state_init(void)
 {
-  pthread_mutex_init(&g_state.lock, NULL);
+  if (pthread_mutex_init(&g_state.lock, NULL) != 0) return -1;
   g_state.current_scene = SCENE_NONE;
   g_state.scene_confidence = 0.0f;
+  g_state.scene_name[0] = '\0';
   g_state.anomaly = ANOMALY_NONE;
   g_state.device_count = 0;
   g_state.agent_auto_mode = true;
@@ -39,7 +40,11 @@ void device_state_get_scene(scene_type_t *s, float *confidence,
   pthread_mutex_lock(&g_state.lock);
   if (s) *s = g_state.current_scene;
   if (confidence) *confidence = g_state.scene_confidence;
-  if (name) { strncpy(name, g_state.scene_name, namelen - 1); name[namelen - 1] = '\0'; }
+  if (name && namelen > 0)
+    {
+      strncpy(name, g_state.scene_name, namelen - 1);
+      name[namelen - 1] = '\0';
+    }
   pthread_mutex_unlock(&g_state.lock);
 }
 
@@ -91,12 +96,44 @@ int device_state_add_device(const char *name)
   return idx;
 }
 
-device_entry_t *device_state_get_devices(int *count)
+int device_state_get_devices(device_entry_t *out, int max, int *count)
 {
+  int n;
   pthread_mutex_lock(&g_state.lock);
+  n = g_state.device_count;
+  if (n > max) n = max;
+  if (out && n > 0) memcpy(out, g_state.devices, sizeof(device_entry_t) * n);
   if (count) *count = g_state.device_count;
   pthread_mutex_unlock(&g_state.lock);
-  return g_state.devices;
+  return n;
+}
+
+int device_state_find_device(const char *name)
+{
+  int found = -1;
+  pthread_mutex_lock(&g_state.lock);
+  int i;
+  for (i = 0; i < g_state.device_count; i++)
+    {
+      if (strcmp(g_state.devices[i].name, name) == 0) { found = i; break; }
+    }
+  pthread_mutex_unlock(&g_state.lock);
+  return found;
+}
+
+bool device_state_update_device(int idx, bool on, int brightness, int temperature)
+{
+  bool ok = false;
+  pthread_mutex_lock(&g_state.lock);
+  if (idx >= 0 && idx < g_state.device_count)
+    {
+      g_state.devices[idx].on = on;
+      if (brightness >= 0) g_state.devices[idx].brightness = brightness;
+      if (temperature >= 0) g_state.devices[idx].temperature = temperature;
+      ok = true;
+    }
+  pthread_mutex_unlock(&g_state.lock);
+  return ok;
 }
 
 void device_state_set_auto_mode(bool on)
