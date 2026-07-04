@@ -16,6 +16,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_NET) && defined(CONFIG_BK7258_WIFI6)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -64,15 +66,15 @@ struct bk7258_wlan_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  bk7258_wlan_ifup(struct net_driver_s *dev);
-static int  bk7258_wlan_ifdown(struct net_driver_s *dev);
-static int  bk7258_wlan_txavail(struct net_driver_s *dev);
-static int  bk7258_wlan_addmac(struct net_driver_s *dev,
-                               const uint8_t *mac);
-static int  bk7258_wlan_rmmac(struct net_driver_s *dev,
-                              const uint8_t *mac);
-static int  bk7258_wlan_ioctl(struct net_driver_s *dev, int cmd,
-                              void *arg);
+static int  bk7258_wlan_ifup(FAR struct net_driver_s *dev);
+static int  bk7258_wlan_ifdown(FAR struct net_driver_s *dev);
+static int  bk7258_wlan_txavail(FAR struct net_driver_s *dev);
+static int  bk7258_wlan_addmac(FAR struct net_driver_s *dev,
+                               FAR const uint8_t *mac);
+static int  bk7258_wlan_rmmac(FAR struct net_driver_s *dev,
+                              FAR const uint8_t *mac);
+static int  bk7258_wlan_ioctl(FAR struct net_driver_s *dev, int cmd,
+                              FAR void *arg);
 
 /****************************************************************************
  * Private Data
@@ -102,9 +104,9 @@ static struct bk7258_wlan_s g_bk7258_wlan;
  *
  ****************************************************************************/
 
-static int bk7258_wlan_isr(int irq, void *context, void *arg)
+static int bk7258_wlan_isr(int irq, FAR void *context, FAR void *arg)
 {
-  struct bk7258_wlan_s *priv = (struct bk7258_wlan_s *)arg;
+  FAR struct bk7258_wlan_s *priv = (FAR struct bk7258_wlan_s *)arg;
   uint32_t status = WLAN_REG(BK7258_WIFI_INTSTS);
 
   /* TX 完成 */
@@ -133,9 +135,9 @@ static int bk7258_wlan_isr(int irq, void *context, void *arg)
  *
  ****************************************************************************/
 
-static int bk7258_wlan_ifup(struct net_driver_s *dev)
+static int bk7258_wlan_ifup(FAR struct net_driver_s *dev)
 {
-  struct bk7258_wlan_s *priv = (struct bk7258_wlan_s *)dev;
+  FAR struct bk7258_wlan_s *priv = (FAR struct bk7258_wlan_s *)dev;
 
   /* TODO: 调用 BK7258 WiFi SDK 连接 AP
    * - 读取 SSID/密码 (从配置或 NVS)
@@ -163,9 +165,9 @@ static int bk7258_wlan_ifup(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_wlan_ifdown(struct net_driver_s *dev)
+static int bk7258_wlan_ifdown(FAR struct net_driver_s *dev)
 {
-  struct bk7258_wlan_s *priv = (struct bk7258_wlan_s *)dev;
+  FAR struct bk7258_wlan_s *priv = (FAR struct bk7258_wlan_s *)dev;
 
   WLAN_REG(BK7258_WIFI_CTRL) = 0;
   priv->up = false;
@@ -183,9 +185,9 @@ static int bk7258_wlan_ifdown(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_wlan_txavail(struct net_driver_s *dev)
+static int bk7258_wlan_txavail(FAR struct net_driver_s *dev)
 {
-  struct bk7258_wlan_s *priv = (struct bk7258_wlan_s *)dev;
+  FAR struct bk7258_wlan_s *priv = (FAR struct bk7258_wlan_s *)dev;
 
   if (!priv->up || !priv->connected)
     {
@@ -209,7 +211,7 @@ static int bk7258_wlan_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_wlan_addmac(struct net_driver_s *dev, const uint8_t *mac)
+static int bk7258_wlan_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   return OK;
 }
@@ -222,7 +224,7 @@ static int bk7258_wlan_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-static int bk7258_wlan_rmmac(struct net_driver_s *dev, const uint8_t *mac)
+static int bk7258_wlan_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   return OK;
 }
@@ -235,7 +237,7 @@ static int bk7258_wlan_rmmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-static int bk7258_wlan_ioctl(struct net_driver_s *dev, int cmd, void *arg)
+static int bk7258_wlan_ioctl(FAR struct net_driver_s *dev, int cmd, FAR void *arg)
 {
   int ret = OK;
 
@@ -299,7 +301,7 @@ static int bk7258_wlan_ioctl(struct net_driver_s *dev, int cmd, void *arg)
 
 int bk7258_wlan_initialize(void)
 {
-  struct bk7258_wlan_s *priv = &g_bk7258_wlan;
+  FAR struct bk7258_wlan_s *priv = &g_bk7258_wlan;
   int ret;
 
   nxsem_init(&priv->txSem, 0, 0);
@@ -344,7 +346,7 @@ int bk7258_wlan_initialize(void)
   ret = netdev_register(&priv->dev, NET_LL_IEEE80211);
   if (ret < 0)
     {
-      _err("netdev_register failed: %d\n", ret);
+      snerr("netdev_register failed: %d\n", ret);
       return ret;
     }
 
@@ -366,7 +368,7 @@ int bk7258_wlan_initialize(void)
  *
  ****************************************************************************/
 
-int bk7258_wlan_connect(const char *ssid, const char *password)
+int bk7258_wlan_connect(FAR const char *ssid, FAR const char *password)
 {
   /* TODO: 调用 BK7258 WiFi SDK 连接 AP
    * - 设置 SSID 和密码
@@ -386,7 +388,9 @@ int bk7258_wlan_connect(const char *ssid, const char *password)
  *
  ****************************************************************************/
 
-const uint8_t *bk7258_wlan_get_mac(void)
+FAR const uint8_t *bk7258_wlan_get_mac(void)
 {
   return g_bk7258_wlan.mac;
 }
+
+#endif /* CONFIG_NET && CONFIG_BK7258_WIFI6 */

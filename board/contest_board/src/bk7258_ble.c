@@ -14,6 +14,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_BLUETOOTH) && defined(CONFIG_BK7258_BLE54)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -81,12 +83,12 @@ struct bk7258_ble_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  bk7258_ble_open(struct bt_driver_s *dev);
-static void bk7258_ble_close(struct bt_driver_s *dev);
-static int  bk7258_ble_send(struct bt_driver_s *dev,
+static int  bk7258_ble_open(FAR struct bt_driver_s *dev);
+static void bk7258_ble_close(FAR struct bt_driver_s *dev);
+static int  bk7258_ble_send(FAR struct bt_driver_s *dev,
                             enum bt_buf_type_e type,
-                            const void *data, size_t len);
-static int  bk7258_ble_recv(struct bt_driver_s *dev, void *buf, size_t len);
+                            FAR const void *data, size_t len);
+static int  bk7258_ble_recv(FAR struct bt_driver_s *dev, FAR void *buf, size_t len);
 
 /****************************************************************************
  * Private Data
@@ -114,9 +116,9 @@ static struct bk7258_ble_s g_bk7258_ble;
  *
  ****************************************************************************/
 
-static int bk7258_ble_isr(int irq, void *context, void *arg)
+static int bk7258_ble_isr(int irq, FAR void *context, FAR void *arg)
 {
-  struct bk7258_ble_s *priv = (struct bk7258_ble_s *)arg;
+  FAR struct bk7258_ble_s *priv = (FAR struct bk7258_ble_s *)arg;
   uint32_t status = BLE_REG(BK7258_BLE_INTSTS);
 
   if (status & 0x01)
@@ -151,7 +153,7 @@ static int bk7258_ble_isr(int irq, void *context, void *arg)
  *
  ****************************************************************************/
 
-static int bk7258_ble_open(struct bt_driver_s *dev)
+static int bk7258_ble_open(FAR struct bt_driver_s *dev)
 {
   /* 使能 BLE 控制器 */
   BLE_REG(BK7258_BLE_CTRL) = BK7258_BLE_CTRL_ENABLE |
@@ -171,7 +173,7 @@ static int bk7258_ble_open(struct bt_driver_s *dev)
  *
  ****************************************************************************/
 
-static void bk7258_ble_close(struct bt_driver_s *dev)
+static void bk7258_ble_close(FAR struct bt_driver_s *dev)
 {
   BLE_REG(BK7258_BLE_CTRL) = 0;
   BLE_REG(BK7258_BLE_INTEN) = 0;
@@ -191,11 +193,11 @@ static void bk7258_ble_close(struct bt_driver_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_ble_send(struct bt_driver_s *dev,
+static int bk7258_ble_send(FAR struct bt_driver_s *dev,
                            enum bt_buf_type_e type,
-                           const void *data, size_t len)
+                           FAR const void *data, size_t len)
 {
-  const uint8_t *p = (const uint8_t *)data;
+  FAR const uint8_t *p = (FAR const uint8_t *)data;
   uint8_t pktType;
   size_t i;
 
@@ -236,9 +238,9 @@ static int bk7258_ble_send(struct bt_driver_s *dev,
  *
  ****************************************************************************/
 
-static int bk7258_ble_recv(struct bt_driver_s *dev, void *buf, size_t len)
+static int bk7258_ble_recv(FAR struct bt_driver_s *dev, FAR void *buf, size_t len)
 {
-  struct bk7258_ble_s *priv = (struct bk7258_ble_s *)dev;
+  FAR struct bk7258_ble_s *priv = (FAR struct bk7258_ble_s *)dev;
   int ret;
 
   /* 等待数据到达 */
@@ -274,7 +276,7 @@ static int bk7258_ble_recv(struct bt_driver_s *dev, void *buf, size_t len)
 
 int bk7258_ble_initialize(void)
 {
-  struct bk7258_ble_s *priv = &g_bk7258_ble;
+  FAR struct bk7258_ble_s *priv = &g_bk7258_ble;
   int ret;
 
   nxsem_init(&priv->rxSem, 0, 0);
@@ -301,7 +303,7 @@ int bk7258_ble_initialize(void)
   ret = bt_driver_register(&priv->dev);
   if (ret < 0)
     {
-      _err("bt_driver_register failed: %d\n", ret);
+      snerr("bt_driver_register failed: %d\n", ret);
       return ret;
     }
 
@@ -317,7 +319,7 @@ int bk7258_ble_initialize(void)
  *
  ****************************************************************************/
 
-int bk7258_ble_set_adv_data(const uint8_t *data, uint8_t len)
+int bk7258_ble_set_adv_data(FAR const uint8_t *data, uint8_t len)
 {
   /* TODO: 通过 HCI 命令设置广播数据
    * - 构造 HCI_LE_Set_Advertising_Data 命令
@@ -355,3 +357,5 @@ int bk7258_ble_stop_advertising(void)
   syslog(LOG_INFO, "BLE advertising stopped\n");
   return OK;
 }
+
+#endif /* CONFIG_BLUETOOTH && CONFIG_BK7258_BLE54 */

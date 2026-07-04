@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  * board/contest_board/src/bk7258_lvgl.c
  *
  * BK7258 LVGL 适配层
@@ -19,6 +19,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined(CONFIG_LVGL) && defined(CONFIG_BK7258_LCD)
 #include <nuttx/lcd/lcd.h>
 #include <nuttx/kmalloc.h>
 #include <arch/chip/bk7258.h>
@@ -269,3 +271,5 @@ int bk7258_lvgl_start(void)
   syslog(LOG_INFO, "LVGL task started\n");
   return OK;
 }
+
+#endif /* CONFIG_LVGL && CONFIG_BK7258_LCD */

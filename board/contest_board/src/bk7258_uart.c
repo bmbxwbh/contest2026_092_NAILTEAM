@@ -17,6 +17,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_SERIAL) && defined(CONFIG_BK7258_UART)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -88,20 +90,20 @@ static struct uart_dev_s g_uart_devs[BK7258_NUARTS];
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  bk7258_uart_setup(struct uart_dev_s *dev);
-static void bk7258_uart_shutdown(struct uart_dev_s *dev);
-static int  bk7258_uart_attach(struct uart_dev_s *dev);
-static void bk7258_uart_detach(struct uart_dev_s *dev);
-static int  bk7258_uart_ioctl(struct file *filep, int cmd,
+static int  bk7258_uart_setup(FAR struct uart_dev_s *dev);
+static void bk7258_uart_shutdown(FAR struct uart_dev_s *dev);
+static int  bk7258_uart_attach(FAR struct uart_dev_s *dev);
+static void bk7258_uart_detach(FAR struct uart_dev_s *dev);
+static int  bk7258_uart_ioctl(FAR struct file *filep, int cmd,
                               unsigned long arg);
-static int  bk7258_uart_receive(struct uart_dev_s *dev,
-                                unsigned int *status);
-static void bk7258_uart_rxint(struct uart_dev_s *dev, bool enable);
-static bool bk7258_uart_rxavailable(struct uart_dev_s *dev);
-static void bk7258_uart_send(struct uart_dev_s *dev, int ch);
-static void bk7258_uart_txint(struct uart_dev_s *dev, bool enable);
-static bool bk7258_uart_txready(struct uart_dev_s *dev);
-static bool bk7258_uart_txempty(struct uart_dev_s *dev);
+static int  bk7258_uart_receive(FAR struct uart_dev_s *dev,
+                                FAR unsigned int *status);
+static void bk7258_uart_rxint(FAR struct uart_dev_s *dev, bool enable);
+static bool bk7258_uart_rxavailable(FAR struct uart_dev_s *dev);
+static void bk7258_uart_send(FAR struct uart_dev_s *dev, int ch);
+static void bk7258_uart_txint(FAR struct uart_dev_s *dev, bool enable);
+static bool bk7258_uart_txready(FAR struct uart_dev_s *dev);
+static bool bk7258_uart_txempty(FAR struct uart_dev_s *dev);
 
 /****************************************************************************
  * Private Data
@@ -157,9 +159,9 @@ static void bk7258_uart_set_baud(uint32_t base, uint32_t baud)
  *
  ****************************************************************************/
 
-static int bk7258_uart_setup(struct uart_dev_s *dev)
+static int bk7258_uart_setup(FAR struct uart_dev_s *dev)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   uint32_t base = priv->base;
 
   /* 禁用 UART */
@@ -185,9 +187,9 @@ static int bk7258_uart_setup(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static void bk7258_uart_shutdown(struct uart_dev_s *dev)
+static void bk7258_uart_shutdown(FAR struct uart_dev_s *dev)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   UART_REG(priv->base, 0x14) = 0;   /* 关闭所有中断 */
 }
 
@@ -199,9 +201,9 @@ static void bk7258_uart_shutdown(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_uart_attach(struct uart_dev_s *dev)
+static int bk7258_uart_attach(FAR struct uart_dev_s *dev)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   int ret;
 
   ret = irq_attach(priv->irq, uart_interrupt, dev);
@@ -221,9 +223,9 @@ static int bk7258_uart_attach(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static void bk7258_uart_detach(struct uart_dev_s *dev)
+static void bk7258_uart_detach(FAR struct uart_dev_s *dev)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   up_disable_irq(priv->irq);
   irq_detach(priv->irq);
 }
@@ -236,7 +238,7 @@ static void bk7258_uart_detach(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_uart_ioctl(struct file *filep, int cmd, unsigned long arg)
+static int bk7258_uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   return -ENOTTY;
 }
@@ -249,9 +251,9 @@ static int bk7258_uart_ioctl(struct file *filep, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
-static int bk7258_uart_receive(struct uart_dev_s *dev, unsigned int *status)
+static int bk7258_uart_receive(FAR struct uart_dev_s *dev, FAR unsigned int *status)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   *status = UART_REG(priv->base, 0x04);   /* 状态寄存器 */
   return (int)UART_REG(priv->base, 0x00); /* 数据寄存器 */
 }
@@ -264,9 +266,9 @@ static int bk7258_uart_receive(struct uart_dev_s *dev, unsigned int *status)
  *
  ****************************************************************************/
 
-static void bk7258_uart_rxint(struct uart_dev_s *dev, bool enable)
+static void bk7258_uart_rxint(FAR struct uart_dev_s *dev, bool enable)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   uint32_t ier = UART_REG(priv->base, 0x14);
 
   if (enable)
@@ -290,9 +292,9 @@ static void bk7258_uart_rxint(struct uart_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
-static bool bk7258_uart_rxavailable(struct uart_dev_s *dev)
+static bool bk7258_uart_rxavailable(FAR struct uart_dev_s *dev)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   return (UART_REG(priv->base, 0x04) & BK7258_UART_SR_RXNE) != 0;
 }
 
@@ -304,9 +306,9 @@ static bool bk7258_uart_rxavailable(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static void bk7258_uart_send(struct uart_dev_s *dev, int ch)
+static void bk7258_uart_send(FAR struct uart_dev_s *dev, int ch)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
 
   /* 等待发送缓冲区空 */
   while ((UART_REG(priv->base, 0x04) & BK7258_UART_SR_TXE) == 0)
@@ -323,9 +325,9 @@ static void bk7258_uart_send(struct uart_dev_s *dev, int ch)
  *
  ****************************************************************************/
 
-static void bk7258_uart_txint(struct uart_dev_s *dev, bool enable)
+static void bk7258_uart_txint(FAR struct uart_dev_s *dev, bool enable)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   priv->txint_enable = enable;
   /* TODO: 配置 TX 中断使能位 */
 }
@@ -338,9 +340,9 @@ static void bk7258_uart_txint(struct uart_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
-static bool bk7258_uart_txready(struct uart_dev_s *dev)
+static bool bk7258_uart_txready(FAR struct uart_dev_s *dev)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   return (UART_REG(priv->base, 0x04) & BK7258_UART_SR_TXE) != 0;
 }
 
@@ -352,9 +354,9 @@ static bool bk7258_uart_txready(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static bool bk7258_uart_txempty(struct uart_dev_s *dev)
+static bool bk7258_uart_txempty(FAR struct uart_dev_s *dev)
 {
-  struct bk7258_uart_s *priv = (struct bk7258_uart_s *)dev->private;
+  FAR struct bk7258_uart_s *priv = (FAR struct bk7258_uart_s *)dev->private;
   return (UART_REG(priv->base, 0x04) & BK7258_UART_SR_TXF) != 0;
 }
 
@@ -378,8 +380,8 @@ static bool bk7258_uart_txempty(struct uart_dev_s *dev)
 
 int bk7258_uart_initialize(int port)
 {
-  struct uart_dev_s *dev;
-  struct bk7258_uart_s *priv;
+  FAR struct uart_dev_s *dev;
+  FAR struct bk7258_uart_s *priv;
   char devname[16];
   int ret;
 
@@ -409,7 +411,7 @@ int bk7258_uart_initialize(int port)
   ret = uart_register(devname, dev);
   if (ret < 0)
     {
-      _err("uart_register(%s) failed: %d\n", devname, ret);
+      snerr("uart_register(%s) failed: %d\n", devname, ret);
       return ret;
     }
 
@@ -429,3 +431,5 @@ int bk7258_uart_initialize(int port)
  ****************************************************************************/
 
 /* uart_interrupt 由 NuttX serial 框架提供, 无需在此实现 */
+
+#endif /* CONFIG_SERIAL && CONFIG_BK7258_UART */

@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  * board/contest_board/src/bk7258_pm.c
  *
  * BK7258 低功耗管理驱动
@@ -17,6 +17,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined(CONFIG_PM) && defined(CONFIG_BK7258_PM)
 #include <nuttx/power/pm.h>
 #include <nuttx/kmalloc.h>
 #include <arch/chip/bk7258.h>
@@ -303,3 +305,5 @@ uint32_t bk7258_pm_get_wakeup_source(void)
   volatile uint32_t *wkup_sts = (volatile uint32_t *)BK7258_PM_WKUP_STS;
   return *wkup_sts;
 }
+
+#endif /* CONFIG_PM && CONFIG_BK7258_PM */

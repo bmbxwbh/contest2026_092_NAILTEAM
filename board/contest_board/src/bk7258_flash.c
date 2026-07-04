@@ -18,6 +18,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_MTD) && defined(CONFIG_BK7258_FLASH)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -66,13 +68,13 @@ struct bk7258_flash_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static ssize_t bk7258_flash_read(struct mtd_dev_s *dev, off_t offset,
-                                 size_t nbytes, uint8_t *buffer);
-static ssize_t bk7258_flash_write(struct mtd_dev_s *dev, off_t offset,
-                                  size_t nbytes, const uint8_t *buffer);
-static int     bk7258_flash_erase(struct mtd_dev_s *dev, off_t startblock,
+static ssize_t bk7258_flash_read(FAR struct mtd_dev_s *dev, off_t offset,
+                                 size_t nbytes, FAR uint8_t *buffer);
+static ssize_t bk7258_flash_write(FAR struct mtd_dev_s *dev, off_t offset,
+                                  size_t nbytes, FAR const uint8_t *buffer);
+static int     bk7258_flash_erase(FAR struct mtd_dev_s *dev, off_t startblock,
                                   size_t nblocks);
-static int     bk7258_flash_ioctl(struct mtd_dev_s *dev, int cmd,
+static int     bk7258_flash_ioctl(FAR struct mtd_dev_s *dev, int cmd,
                                   unsigned long arg);
 
 /****************************************************************************
@@ -133,10 +135,10 @@ static int bk7258_flash_wait_ready(void)
  *
  ****************************************************************************/
 
-static ssize_t bk7258_flash_read(struct mtd_dev_s *dev, off_t offset,
-                                 size_t nbytes, uint8_t *buffer)
+static ssize_t bk7258_flash_read(FAR struct mtd_dev_s *dev, off_t offset,
+                                 size_t nbytes, FAR uint8_t *buffer)
 {
-  struct bk7258_flash_s *priv = (struct bk7258_flash_s *)dev;
+  FAR struct bk7258_flash_s *priv = (FAR struct bk7258_flash_s *)dev;
 
   if (offset + nbytes > priv->size)
     {
@@ -151,7 +153,7 @@ static ssize_t bk7258_flash_read(struct mtd_dev_s *dev, off_t offset,
    *
    * 简化实现: 直接内存映射读取 (如果支持 XIP)
    */
-  memcpy(buffer, (const void *)(priv->base + offset), nbytes);
+  memcpy(buffer, (FAR const void *)(priv->base + offset), nbytes);
 
   return (ssize_t)nbytes;
 }
@@ -164,10 +166,10 @@ static ssize_t bk7258_flash_read(struct mtd_dev_s *dev, off_t offset,
  *
  ****************************************************************************/
 
-static ssize_t bk7258_flash_write(struct mtd_dev_s *dev, off_t offset,
-                                  size_t nbytes, const uint8_t *buffer)
+static ssize_t bk7258_flash_write(FAR struct mtd_dev_s *dev, off_t offset,
+                                  size_t nbytes, FAR const uint8_t *buffer)
 {
-  struct bk7258_flash_s *priv = (struct bk7258_flash_s *)dev;
+  FAR struct bk7258_flash_s *priv = (FAR struct bk7258_flash_s *)dev;
   size_t written = 0;
   int ret;
 
@@ -193,7 +195,7 @@ static ssize_t bk7258_flash_write(struct mtd_dev_s *dev, off_t offset,
       FLASH_REG(BK7258_FLASH_ADDR - BK7258_FLASH_CTRL_BASE) = offset + written;
 
       /* 写入数据 (TODO: 逐字写入数据寄存器) */
-      const uint8_t *src = buffer + written;
+      FAR const uint8_t *src = buffer + written;
       for (size_t i = 0; i < chunk; i++)
         {
           FLASH_REG(BK7258_FLASH_DATA - BK7258_FLASH_CTRL_BASE) = src[i];
@@ -206,7 +208,7 @@ static ssize_t bk7258_flash_write(struct mtd_dev_s *dev, off_t offset,
       ret = bk7258_flash_wait_ready();
       if (ret < 0)
         {
-          _err("Flash write timeout at offset 0x%lx\n",
+          snerr("Flash write timeout at offset 0x%lx\n",
                (unsigned long)(offset + written));
           return ret;
         }
@@ -229,10 +231,10 @@ static ssize_t bk7258_flash_write(struct mtd_dev_s *dev, off_t offset,
  *
  ****************************************************************************/
 
-static int bk7258_flash_erase(struct mtd_dev_s *dev, off_t startblock,
+static int bk7258_flash_erase(FAR struct mtd_dev_s *dev, off_t startblock,
                               size_t nblocks)
 {
-  struct bk7258_flash_s *priv = (struct bk7258_flash_s *)dev;
+  FAR struct bk7258_flash_s *priv = (FAR struct bk7258_flash_s *)dev;
   off_t offset;
   int ret;
 
@@ -257,7 +259,7 @@ static int bk7258_flash_erase(struct mtd_dev_s *dev, off_t startblock,
       ret = bk7258_flash_wait_ready();
       if (ret < 0)
         {
-          _err("Flash erase timeout at offset 0x%lx\n", (unsigned long)offset);
+          snerr("Flash erase timeout at offset 0x%lx\n", (unsigned long)offset);
           return ret;
         }
 
@@ -275,17 +277,17 @@ static int bk7258_flash_erase(struct mtd_dev_s *dev, off_t startblock,
  *
  ****************************************************************************/
 
-static int bk7258_flash_ioctl(struct mtd_dev_s *dev, int cmd,
+static int bk7258_flash_ioctl(FAR struct mtd_dev_s *dev, int cmd,
                               unsigned long arg)
 {
-  struct bk7258_flash_s *priv = (struct bk7258_flash_s *)dev;
+  FAR struct bk7258_flash_s *priv = (FAR struct bk7258_flash_s *)dev;
   int ret = OK;
 
   switch (cmd)
     {
       case MTDIOC_GEOMETRY:
         {
-          struct mtd_geometry_s *geo = (struct mtd_geometry_s *)arg;
+          FAR struct mtd_geometry_s *geo = (FAR struct mtd_geometry_s *)arg;
           geo->blocksize    = BK7258_FLASH_PAGE_SIZE;
           geo->erasesize    = BK7258_FLASH_SECTOR_SIZE;
           geo->neraseblocks = priv->size / BK7258_FLASH_SECTOR_SIZE;
@@ -324,9 +326,9 @@ static int bk7258_flash_ioctl(struct mtd_dev_s *dev, int cmd,
  *
  ****************************************************************************/
 
-struct mtd_dev_s *bk7258_flash_initialize(void)
+FAR struct mtd_dev_s *bk7258_flash_initialize(void)
 {
-  struct bk7258_flash_s *priv = &g_bk7258_flash;
+  FAR struct bk7258_flash_s *priv = &g_bk7258_flash;
 
   /* 使能 Flash 时钟 */
   bk7258_peri_clk_enable(BK7258_PERI_CLK_FLASH);
@@ -355,8 +357,8 @@ struct mtd_dev_s *bk7258_flash_initialize(void)
 
 int bk7258_flash_create_partitions(void)
 {
-  struct mtd_dev_s *flash;
-  struct mtd_dev_s *mtd;
+  FAR struct mtd_dev_s *flash;
+  FAR struct mtd_dev_s *mtd;
   int ret;
 
   flash = bk7258_flash_initialize();
@@ -374,7 +376,7 @@ int bk7258_flash_create_partitions(void)
       ret = smart_initialize(0, mtd, NULL);
       if (ret < 0)
         {
-          _err("rootfs smart_initialize failed: %d\n", ret);
+          snerr("rootfs smart_initialize failed: %d\n", ret);
         }
       else
         {
@@ -391,7 +393,7 @@ int bk7258_flash_create_partitions(void)
       ret = register_mtddriver("/dev/aimodels", mtd, 0755, NULL);
       if (ret < 0)
         {
-          _err("ai-models register failed: %d\n", ret);
+          snerr("ai-models register failed: %d\n", ret);
         }
       else
         {
@@ -408,7 +410,7 @@ int bk7258_flash_create_partitions(void)
       ret = smart_initialize(1, mtd, NULL);
       if (ret < 0)
         {
-          _err("user-data smart_initialize failed: %d\n", ret);
+          snerr("user-data smart_initialize failed: %d\n", ret);
         }
       else
         {
@@ -418,3 +420,5 @@ int bk7258_flash_create_partitions(void)
 
   return OK;
 }
+
+#endif /* CONFIG_MTD && CONFIG_BK7258_FLASH */

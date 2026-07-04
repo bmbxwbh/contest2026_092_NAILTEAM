@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  * board/contest_board/src/bk7258_fw.c
  *
  * BK7258 固件加载框架
@@ -21,6 +21,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined(CONFIG_BK7258_WIFI6) || defined(CONFIG_BK7258_BLE54)
 #include <nuttx/fs/fs.h>
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/kmalloc.h>
@@ -253,3 +255,5 @@ void bk7258_fw_release(void)
       g_ble_fw.buffer = NULL;
     }
 }
+
+#endif /* CONFIG_BK7258_WIFI6 || CONFIG_BK7258_BLE54 */

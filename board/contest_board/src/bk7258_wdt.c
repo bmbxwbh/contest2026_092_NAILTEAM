@@ -1,21 +1,27 @@
 /****************************************************************************
  * board/contest_board/src/bk7258_wdt.c
  *
- * BK7258 看门狗驱动
+ * BK7258 Watchdog Driver - NuttX Lower-Half Implementation
  *
- * 用于系统稳定性保护:
- *   - 系统死锁/卡死时自动复位
- *   - 提供 NuttX watchdog lowerhalf 接口
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * 使用场景:
- *   - 主循环定期喂狗 (5秒超时)
- *   - AI 推理超时不会触发 (独立看门狗)
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  ****************************************************************************/
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+
+#if defined(CONFIG_WATCHDOG) && defined(CONFIG_BK7258_WDT)
 
 #include <nuttx/config.h>
 #include <nuttx/timers/watchdog.h>
@@ -30,35 +36,46 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* 看门狗寄存器 (SDK确认: SOC_WDT_REG_BASE=0x44800000, 偏移来自 wdt_reg.h) */
+/* Watchdog registers (SDK confirmed: SOC_WDT_REG_BASE=0x44800000,
+ * offsets from wdt_reg.h) */
+
 #define BK7258_WDT_BASE          0x44800000      /* SOC_WDT_REG_BASE */
-#define BK7258_WDT_CTRL          (BK7258_WDT_BASE + 0x4*4)   /* CTRL: WDT_R_BASE + 0x4*4 */
+#define BK7258_WDT_CTRL          (BK7258_WDT_BASE + 0x4*4)  /* CTRL */
 #define BK7258_WDT_LOAD          (BK7258_WDT_BASE + 0x04)
 #define BK7258_WDT_VALUE         (BK7258_WDT_BASE + 0x08)
 #define BK7258_WDT_INTCLR        (BK7258_WDT_BASE + 0x0C)
 #define BK7258_WDT_RIS           (BK7258_WDT_BASE + 0x10)
 #define BK7258_WDT_MIS           (BK7258_WDT_BASE + 0x14)
 
+/* Control register bits */
 #define BK7258_WDT_CTRL_EN       (1 << 0)
 #define BK7258_WDT_CTRL_INTEN    (1 << 1)
 #define BK7258_WDT_CTRL_RESET    (1 << 2)
 
-/* 看门狗时钟 (SDK确认: 26MHz/分频, WDT_CKEN is bit31 of SYS_CPU_DEVICE_CLK_ENABLE)
+/* Watchdog clock (SDK confirmed: 26MHz / divider,
+ * WDT_CKEN is bit31 of SYS_CPU_DEVICE_CLK_ENABLE)
  * AON WDT: SOC_AON_WDT_REG_BASE = 0x44000600 */
+
 #define BK7258_WDT_CLK           26000000UL
 
-/* 最大超时 (秒) */
+/* Maximum timeout (seconds) */
 #define BK7258_WDT_MAX_TIMEOUT   10
 
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
+/* BK7258 watchdog private state.
+ * The first field MUST be 'const struct watchdog_ops_s *ops' so that
+ * this struct is cast-compatible with struct watchdog_lowerhalf_s.
+ */
+
 struct bk7258_wdt_s
 {
-  struct watchdog_lowerhalf_s dev;  /* NuttX watchdog 接口 */
-  uint32_t timeout;                 /* 当前超时 (ms) */
-  bool     started;                 /* 是否已启动 */
+  FAR const struct watchdog_ops_s *ops;  /* Must be first field */
+  uint32_t timeout;                      /* Current timeout (ms) */
+  bool     started;                      /* Watchdog running flag */
+  FAR void *upper;                       /* Upper-half handle for unregister */
 };
 
 /****************************************************************************
@@ -71,13 +88,13 @@ struct bk7258_wdt_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  bk7258_wdt_start(struct watchdog_lowerhalf_s *dev);
-static int  bk7258_wdt_stop(struct watchdog_lowerhalf_s *dev);
-static int  bk7258_wdt_keepalive(struct watchdog_lowerhalf_s *dev);
-static int  bk7258_wdt_getstatus(struct watchdog_lowerhalf_s *dev,
-                                  struct watchdog_status_s *status);
-static int  bk7258_wdt_settimeout(struct watchdog_lowerhalf_s *dev,
-                                   uint32_t timeout);
+static int bk7258_wdt_start(FAR struct watchdog_lowerhalf_s *lower);
+static int bk7258_wdt_stop(FAR struct watchdog_lowerhalf_s *lower);
+static int bk7258_wdt_keepalive(FAR struct watchdog_lowerhalf_s *lower);
+static int bk7258_wdt_getstatus(FAR struct watchdog_lowerhalf_s *lower,
+                                FAR struct watchdog_status_s *status);
+static int bk7258_wdt_settimeout(FAR struct watchdog_lowerhalf_s *lower,
+                                 uint32_t timeout);
 
 /****************************************************************************
  * Private Data
@@ -92,63 +109,133 @@ static const struct watchdog_ops_s g_bk7258_wdt_ops =
   .settimeout = bk7258_wdt_settimeout,
 };
 
-static struct bk7258_wdt_s g_bk7258_wdt;
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-static int bk7258_wdt_start(struct watchdog_lowerhalf_s *dev)
+/****************************************************************************
+ * Name: bk7258_wdt_start
+ *
+ * Description:
+ *   Start the watchdog timer.
+ *
+ ****************************************************************************/
+
+static int bk7258_wdt_start(FAR struct watchdog_lowerhalf_s *lower)
 {
-  struct bk7258_wdt_s *priv = (struct bk7258_wdt_s *)dev;
+  FAR struct bk7258_wdt_s *priv = (FAR struct bk7258_wdt_s *)lower;
+
+  if (priv == NULL)
+    {
+      return -EINVAL;
+    }
 
   WDT_REG(BK7258_WDT_CTRL) = BK7258_WDT_CTRL_EN | BK7258_WDT_CTRL_RESET;
   priv->started = true;
-  syslog(LOG_INFO, "Watchdog started (timeout=%u ms)\n", priv->timeout);
+
+  syslog(LOG_INFO, "BK7258 WDT: started (timeout=%u ms)\n", priv->timeout);
   return OK;
 }
 
-static int bk7258_wdt_stop(struct watchdog_lowerhalf_s *dev)
+/****************************************************************************
+ * Name: bk7258_wdt_stop
+ *
+ * Description:
+ *   Stop the watchdog timer.
+ *
+ ****************************************************************************/
+
+static int bk7258_wdt_stop(FAR struct watchdog_lowerhalf_s *lower)
 {
-  struct bk7258_wdt_s *priv = (struct bk7258_wdt_s *)dev;
+  FAR struct bk7258_wdt_s *priv = (FAR struct bk7258_wdt_s *)lower;
+
+  if (priv == NULL)
+    {
+      return -EINVAL;
+    }
 
   WDT_REG(BK7258_WDT_CTRL) = 0;
   priv->started = false;
-  syslog(LOG_INFO, "Watchdog stopped\n");
+
+  syslog(LOG_INFO, "BK7258 WDT: stopped\n");
   return OK;
 }
 
-static int bk7258_wdt_keepalive(struct watchdog_lowerhalf_s *dev)
+/****************************************************************************
+ * Name: bk7258_wdt_keepalive
+ *
+ * Description:
+ *   Reset the watchdog timer (pet / feed the dog).
+ *
+ ****************************************************************************/
+
+static int bk7258_wdt_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 {
-  /* 喂狗: 写任意值到 INTCLR */
+  if (lower == NULL)
+    {
+      return -EINVAL;
+    }
+
+  /* Write any value to INTCLR to reload the counter */
   WDT_REG(BK7258_WDT_INTCLR) = 0x01;
   return OK;
 }
 
-static int bk7258_wdt_getstatus(struct watchdog_lowerhalf_s *dev,
-                                struct watchdog_status_s *status)
+/****************************************************************************
+ * Name: bk7258_wdt_getstatus
+ *
+ * Description:
+ *   Get the current watchdog status.
+ *
+ ****************************************************************************/
+
+static int bk7258_wdt_getstatus(FAR struct watchdog_lowerhalf_s *lower,
+                                FAR struct watchdog_status_s *status)
 {
-  struct bk7258_wdt_s *priv = (struct bk7258_wdt_s *)dev;
+  FAR struct bk7258_wdt_s *priv = (FAR struct bk7258_wdt_s *)lower;
+
+  if (priv == NULL || status == NULL)
+    {
+      return -EINVAL;
+    }
 
   status->flags = 0;
   if (priv->started)
     {
-      status->flags |= WDIOC_ACTIVE;
+      status->flags |= WDFLAGS_ACTIVE;
     }
+
   status->timeout = priv->timeout;
   status->timeleft = (WDT_REG(BK7258_WDT_VALUE) * 1000) / BK7258_WDT_CLK;
 
   return OK;
 }
 
-static int bk7258_wdt_settimeout(struct watchdog_lowerhalf_s *dev,
+/****************************************************************************
+ * Name: bk7258_wdt_settimeout
+ *
+ * Description:
+ *   Set a new timeout value for the watchdog. The timeout is in
+ *   milliseconds.
+ *
+ ****************************************************************************/
+
+static int bk7258_wdt_settimeout(FAR struct watchdog_lowerhalf_s *lower,
                                  uint32_t timeout)
 {
-  struct bk7258_wdt_s *priv = (struct bk7258_wdt_s *)dev;
+  FAR struct bk7258_wdt_s *priv = (FAR struct bk7258_wdt_s *)lower;
   uint32_t ticks;
+
+  if (priv == NULL)
+    {
+      return -EINVAL;
+    }
 
   if (timeout == 0 || timeout > BK7258_WDT_MAX_TIMEOUT * 1000)
     {
+      syslog(LOG_ERR,
+             "BK7258 WDT: invalid timeout %u ms (max %u ms)\n",
+             timeout, BK7258_WDT_MAX_TIMEOUT * 1000);
       return -EINVAL;
     }
 
@@ -167,39 +254,71 @@ static int bk7258_wdt_settimeout(struct watchdog_lowerhalf_s *dev,
  * Name: bk7258_wdt_initialize
  *
  * Description:
- *   初始化看门狗并注册到 NuttX。
+ *   Initialize the BK7258 watchdog and register it with the NuttX
+ *   watchdog subsystem.
  *
  * Input Parameters:
- *   defaultTimeout - 默认超时时间 (ms)
+ *   defaultTimeout - Default timeout in milliseconds
+ *
+ * Returned Value:
+ *   OK on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
 int bk7258_wdt_initialize(uint32_t defaultTimeout)
 {
-  struct bk7258_wdt_s *priv = &g_bk7258_wdt;
+  FAR struct bk7258_wdt_s *priv = NULL;
+  FAR void *handle = NULL;
   int ret;
 
-  priv->dev.ops = &g_bk7258_wdt_ops;
+  /* Allocate the private state structure via kmm_zalloc
+   * (supports multiple instances) */
+
+  priv = (FAR struct bk7258_wdt_s *)
+    kmm_zalloc(sizeof(struct bk7258_wdt_s));
+  if (priv == NULL)
+    {
+      syslog(LOG_ERR, "BK7258 WDT: failed to allocate private data\n");
+      return -ENOMEM;
+    }
+
+  /* Initialize the private structure */
+
+  priv->ops     = &g_bk7258_wdt_ops;
   priv->timeout = defaultTimeout;
   priv->started = false;
+  priv->upper   = NULL;
 
-  /* 设置默认超时 */
-  ret = bk7258_wdt_settimeout((struct watchdog_lowerhalf_s *)priv,
+  /* Set the default timeout into hardware */
+
+  ret = bk7258_wdt_settimeout((FAR struct watchdog_lowerhalf_s *)priv,
                               defaultTimeout);
   if (ret < 0)
     {
-      _err("WDT settimeout failed: %d\n", ret);
-      return ret;
+      syslog(LOG_ERR, "BK7258 WDT: settimeout failed: %d\n", ret);
+      goto errout_with_alloc;
     }
 
-  /* 注册到 NuttX */
-  ret = watchdog_register("/dev/watchdog0", &priv->dev);
-  if (ret < 0)
+  /* Register the watchdog device with the NuttX subsystem */
+
+  handle = watchdog_register("/dev/watchdog0",
+                             (FAR struct watchdog_lowerhalf_s *)priv);
+  if (handle == NULL)
     {
-      _err("watchdog_register failed: %d\n", ret);
-      return ret;
+      syslog(LOG_ERR, "BK7258 WDT: watchdog_register failed\n");
+      ret = -EIO;
+      goto errout_with_alloc;
     }
 
-  syslog(LOG_INFO, "Watchdog initialized (timeout=%u ms)\n", defaultTimeout);
+  priv->upper = handle;
+
+  syslog(LOG_INFO, "BK7258 WDT: initialized (timeout=%u ms)\n",
+         defaultTimeout);
   return OK;
+
+errout_with_alloc:
+  kmm_free(priv);
+  return ret;
 }
+
+#endif /* CONFIG_WATCHDOG && CONFIG_BK7258_WDT */

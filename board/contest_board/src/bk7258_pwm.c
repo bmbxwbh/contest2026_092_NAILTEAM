@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  * board/contest_board/src/bk7258_pwm.c
  *
  * BK7258 PWM 驱动
@@ -14,6 +14,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined(CONFIG_PWM) && defined(CONFIG_BK7258_PWM)
 #include <nuttx/timers/pwm.h>
 #include <nuttx/kmalloc.h>
 #include <arch/chip/bk7258.h>
@@ -258,3 +260,5 @@ int bk7258_buzzer_off(void)
   PWM_REG(priv->base, BK7258_PWM_CTRL) = 0;
   return OK;
 }
+
+#endif /* CONFIG_PWM && CONFIG_BK7258_PWM */

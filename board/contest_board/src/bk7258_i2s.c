@@ -13,6 +13,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_AUDIO) && defined(CONFIG_BK7258_I2S)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -76,17 +78,17 @@ struct bk7258_i2s_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  bk7258_i2s_rxreceive(struct i2s_dev_s *dev,
-                                 struct ap_buffer_s *apb,
-                                 struct i2s_callback_s *cb);
-static int  bk7258_i2s_txsend(struct i2s_dev_s *dev,
-                              struct ap_buffer_s *apb,
-                              struct i2s_callback_s *cb);
-static int  bk7258_i2s_stop(struct i2s_dev_s *dev,
+static int  bk7258_i2s_rxreceive(FAR struct i2s_dev_s *dev,
+                                 FAR struct ap_buffer_s *apb,
+                                 FAR struct i2s_callback_s *cb);
+static int  bk7258_i2s_txsend(FAR struct i2s_dev_s *dev,
+                              FAR struct ap_buffer_s *apb,
+                              FAR struct i2s_callback_s *cb);
+static int  bk7258_i2s_stop(FAR struct i2s_dev_s *dev,
                             enum i2s_ch_t ch);
-static int  bk7258_i2s_pause(struct i2s_dev_s *dev,
+static int  bk7258_i2s_pause(FAR struct i2s_dev_s *dev,
                              enum i2s_ch_t ch);
-static int  bk7258_i2s_resume(struct i2s_dev_s *dev,
+static int  bk7258_i2s_resume(FAR struct i2s_dev_s *dev,
                               enum i2s_ch_t ch);
 
 /****************************************************************************
@@ -116,9 +118,9 @@ static struct bk7258_i2s_s g_bk7258_i2s[BK7258_NI2S];
  *
  ****************************************************************************/
 
-static int bk7258_i2s_isr(int irq, void *context, void *arg)
+static int bk7258_i2s_isr(int irq, FAR void *context, FAR void *arg)
 {
-  struct bk7258_i2s_s *priv = (struct bk7258_i2s_s *)arg;
+  FAR struct bk7258_i2s_s *priv = (FAR struct bk7258_i2s_s *)arg;
   uint32_t status;
 
   status = I2S_REG(priv->base, BK7258_I2S_INTSTS);
@@ -158,7 +160,7 @@ static int bk7258_i2s_isr(int irq, void *context, void *arg)
  *
  ****************************************************************************/
 
-static int bk7258_i2s_config(struct bk7258_i2s_s *priv,
+static int bk7258_i2s_config(FAR struct bk7258_i2s_s *priv,
                              uint32_t srate, uint8_t bits, uint8_t chans)
 {
   /* 计算分频系数: MCLK = srate × 256 */
@@ -185,12 +187,11 @@ static int bk7258_i2s_config(struct bk7258_i2s_s *priv,
  *
  ****************************************************************************/
 
-static int bk7258_i2s_rxreceive(struct i2s_dev_s *dev,
-                                struct ap_buffer_s *apb,
-                                struct i2s_callback_s *cb)
+static int bk7258_i2s_rxreceive(FAR struct i2s_dev_s *dev,
+                                FAR struct ap_buffer_s *apb,
+                                FAR struct i2s_callback_s *cb)
 {
-  struct bk7258_i2s_s *priv = (struct bk7258_i2s_s *)dev;
-  int ret;
+  FAR struct bk7258_i2s_s *priv = (FAR struct bk7258_i2s_s *)dev;
 
   /* 保存回调 */
   priv->rxCb.callback = cb->callback;
@@ -214,11 +215,11 @@ static int bk7258_i2s_rxreceive(struct i2s_dev_s *dev,
  *
  ****************************************************************************/
 
-static int bk7258_i2s_txsend(struct i2s_dev_s *dev,
-                             struct ap_buffer_s *apb,
-                             struct i2s_callback_s *cb)
+static int bk7258_i2s_txsend(FAR struct i2s_dev_s *dev,
+                             FAR struct ap_buffer_s *apb,
+                             FAR struct i2s_callback_s *cb)
 {
-  struct bk7258_i2s_s *priv = (struct bk7258_i2s_s *)dev;
+  FAR struct bk7258_i2s_s *priv = (FAR struct bk7258_i2s_s *)dev;
 
   priv->txCb.callback = cb->callback;
   priv->txCb.arg = cb->arg;
@@ -241,9 +242,9 @@ static int bk7258_i2s_txsend(struct i2s_dev_s *dev,
  *
  ****************************************************************************/
 
-static int bk7258_i2s_stop(struct i2s_dev_s *dev, enum i2s_ch_t ch)
+static int bk7258_i2s_stop(FAR struct i2s_dev_s *dev, enum i2s_ch_t ch)
 {
-  struct bk7258_i2s_s *priv = (struct bk7258_i2s_s *)dev;
+  FAR struct bk7258_i2s_s *priv = (FAR struct bk7258_i2s_s *)dev;
   uint32_t ctrl = I2S_REG(priv->base, BK7258_I2S_CTRL);
 
   if (ch == I2S_RX)
@@ -271,7 +272,7 @@ static int bk7258_i2s_stop(struct i2s_dev_s *dev, enum i2s_ch_t ch)
  *
  ****************************************************************************/
 
-static int bk7258_i2s_pause(struct i2s_dev_s *dev, enum i2s_ch_t ch)
+static int bk7258_i2s_pause(FAR struct i2s_dev_s *dev, enum i2s_ch_t ch)
 {
   return bk7258_i2s_stop(dev, ch);
 }
@@ -284,9 +285,9 @@ static int bk7258_i2s_pause(struct i2s_dev_s *dev, enum i2s_ch_t ch)
  *
  ****************************************************************************/
 
-static int bk7258_i2s_resume(struct i2s_dev_s *dev, enum i2s_ch_t ch)
+static int bk7258_i2s_resume(FAR struct i2s_dev_s *dev, enum i2s_ch_t ch)
 {
-  struct bk7258_i2s_s *priv = (struct bk7258_i2s_s *)dev;
+  FAR struct bk7258_i2s_s *priv = (FAR struct bk7258_i2s_s *)dev;
   uint32_t ctrl = I2S_REG(priv->base, BK7258_I2S_CTRL);
 
   if (ch == I2S_RX)
@@ -314,9 +315,9 @@ static int bk7258_i2s_resume(struct i2s_dev_s *dev, enum i2s_ch_t ch)
  *
  ****************************************************************************/
 
-struct i2s_dev_s *bk7258_i2s_initialize(int port)
+FAR struct i2s_dev_s *bk7258_i2s_initialize(int port)
 {
-  struct bk7258_i2s_s *priv;
+  FAR struct bk7258_i2s_s *priv;
   int ret;
 
   if (port < 0 || port >= BK7258_NI2S)
@@ -371,7 +372,7 @@ struct i2s_dev_s *bk7258_i2s_initialize(int port)
 
 int bk7258_audio_dsp_configure(uint32_t srate, uint8_t channels)
 {
-  volatile uint32_t *dsp = (volatile uint32_t *)BK7258_AUDIO_DSP_BASE;
+  FAR volatile uint32_t *dsp = (FAR volatile uint32_t *)BK7258_AUDIO_DSP_BASE;
 
   /* 使能音频 DSP */
   dsp[0] = 0x01;                        /* DSP_CTRL: 使能 */
@@ -388,3 +389,5 @@ int bk7258_audio_dsp_configure(uint32_t srate, uint8_t channels)
   syslog(LOG_INFO, "Audio DSP configured: NR=AEC=AGC=on, %uHz\n", srate);
   return OK;
 }
+
+#endif /* CONFIG_AUDIO && CONFIG_BK7258_I2S */

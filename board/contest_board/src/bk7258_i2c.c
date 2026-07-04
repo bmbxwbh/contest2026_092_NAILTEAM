@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  * board/contest_board/src/bk7258_i2c.c
  *
  * BK7258 I2C 驱动
@@ -16,6 +16,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined(CONFIG_I2C) && defined(CONFIG_BK7258_I2C)
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
@@ -304,3 +306,5 @@ int bk7258_i2c_initialize(int port, uint32_t frequency)
          port, devname, priv->frequency);
   return OK;
 }
+
+#endif /* CONFIG_I2C && CONFIG_BK7258_I2C */

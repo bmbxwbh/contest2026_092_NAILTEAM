@@ -10,6 +10,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_BK7258_GPIO)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -73,7 +75,7 @@ int bk7258_gpio_initialize(void)
       g_gpio[i].int_enable = false;
     }
 
-  _info("GPIO subsystem initialized (%d pins)\n", BK7258_NGPIO);
+  sninfo("GPIO subsystem initialized (%d pins)\n", BK7258_NGPIO);
   return OK;
 }
 
@@ -200,5 +202,7 @@ bool bk7258_gpio_read_key(void)
 void bk7258_gpio_toggle_buzzer(bool on)
 {
   /* TODO: 蜂鸣器 GPIO 待确认后实现 */
-  _info("Buzzer %s\n", on ? "ON" : "OFF");
+  sninfo("Buzzer %s\n", on ? "ON" : "OFF");
 }
+
+#endif /* CONFIG_BK7258_GPIO */

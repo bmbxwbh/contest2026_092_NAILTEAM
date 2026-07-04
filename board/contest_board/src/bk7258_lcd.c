@@ -12,6 +12,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_VIDEO_FB) && defined(CONFIG_BK7258_LCD)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -45,7 +47,7 @@
 struct bk7258_lcd_s
 {
   struct lcd_dev_s dev;        /* LCD 设备接口 */
-  uint16_t *fb;                /* 帧缓冲指针 (PSRAM) */
+  FAR uint16_t *fb;           /* 帧缓冲指针 (PSRAM) */
   bool     on;                 /* 背光开关 */
 };
 
@@ -59,17 +61,17 @@ struct bk7258_lcd_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  bk7258_lcd_getdev(struct lcd_dev_s *dev,
-                              struct lcd_devinfo_s *devinfo);
-static int  bk7258_lcd_getpower(struct lcd_dev_s *dev);
-static int  bk7258_lcd_setpower(struct lcd_dev_s *dev, int power);
-static int  bk7258_lcd_getcontrast(struct lcd_dev_s *dev);
-static int  bk7258_lcd_setcontrast(struct lcd_dev_s *dev, int contrast);
-static int  bk7258_lcd_getorientation(struct lcd_dev_s *dev);
-static int  bk7258_lcd_setorientation(struct lcd_dev_s *dev, int orient);
-static fb_startup_t bk7258_lcd_getstartup(struct lcd_dev_s *dev,
-                                          struct fb_videoinfo_s *vinfo,
-                                          struct fb_planeinfo_s *pinfo);
+static int  bk7258_lcd_getdev(FAR struct lcd_dev_s *dev,
+                              FAR struct lcd_devinfo_s *devinfo);
+static int  bk7258_lcd_getpower(FAR struct lcd_dev_s *dev);
+static int  bk7258_lcd_setpower(FAR struct lcd_dev_s *dev, int power);
+static int  bk7258_lcd_getcontrast(FAR struct lcd_dev_s *dev);
+static int  bk7258_lcd_setcontrast(FAR struct lcd_dev_s *dev, int contrast);
+static int  bk7258_lcd_getorientation(FAR struct lcd_dev_s *dev);
+static int  bk7258_lcd_setorientation(FAR struct lcd_dev_s *dev, int orient);
+static fb_startup_t bk7258_lcd_getstartup(FAR struct lcd_dev_s *dev,
+                                          FAR struct fb_videoinfo_s *vinfo,
+                                          FAR struct fb_planeinfo_s *pinfo);
 
 /****************************************************************************
  * Private Data
@@ -101,10 +103,10 @@ static struct bk7258_lcd_s g_bk7258_lcd;
  *
  ****************************************************************************/
 
-static int bk7258_lcd_getdev(struct lcd_dev_s *dev,
-                             struct lcd_devinfo_s *devinfo)
+static int bk7258_lcd_getdev(FAR struct lcd_dev_s *dev,
+                             FAR struct lcd_devinfo_s *devinfo)
 {
-  devinfo->fbmem = (void *)g_bk7258_lcd.fb;
+  devinfo->fbmem = (FAR void *)g_bk7258_lcd.fb;
   devinfo->fblen = BK7258_LCD_FBSIZE;
   devinfo->bpp   = BK7258_LCD_BPP;
   devinfo->stride = BK7258_LCD_STRIDE;
@@ -124,7 +126,7 @@ static int bk7258_lcd_getdev(struct lcd_dev_s *dev,
  *
  ****************************************************************************/
 
-static int bk7258_lcd_getpower(struct lcd_dev_s *dev)
+static int bk7258_lcd_getpower(FAR struct lcd_dev_s *dev)
 {
   return g_bk7258_lcd.on ? 1 : 0;
 }
@@ -137,7 +139,7 @@ static int bk7258_lcd_getpower(struct lcd_dev_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_lcd_setpower(struct lcd_dev_s *dev, int power)
+static int bk7258_lcd_setpower(FAR struct lcd_dev_s *dev, int power)
 {
   g_bk7258_lcd.on = (power > 0);
   LCD_REG(BK7258_LCD_CTRL) = g_bk7258_lcd.on ?
@@ -154,7 +156,7 @@ static int bk7258_lcd_setpower(struct lcd_dev_s *dev, int power)
  *
  ****************************************************************************/
 
-static int bk7258_lcd_getcontrast(struct lcd_dev_s *dev)
+static int bk7258_lcd_getcontrast(FAR struct lcd_dev_s *dev)
 {
   return 0;
 }
@@ -167,7 +169,7 @@ static int bk7258_lcd_getcontrast(struct lcd_dev_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_lcd_setcontrast(struct lcd_dev_s *dev, int contrast)
+static int bk7258_lcd_setcontrast(FAR struct lcd_dev_s *dev, int contrast)
 {
   return -ENOSYS;
 }
@@ -180,7 +182,7 @@ static int bk7258_lcd_setcontrast(struct lcd_dev_s *dev, int contrast)
  *
  ****************************************************************************/
 
-static int bk7258_lcd_getorientation(struct lcd_dev_s *dev)
+static int bk7258_lcd_getorientation(FAR struct lcd_dev_s *dev)
 {
   return 0;
 }
@@ -193,7 +195,7 @@ static int bk7258_lcd_getorientation(struct lcd_dev_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_lcd_setorientation(struct lcd_dev_s *dev, int orient)
+static int bk7258_lcd_setorientation(FAR struct lcd_dev_s *dev, int orient)
 {
   return -ENOSYS;
 }
@@ -206,16 +208,16 @@ static int bk7258_lcd_setorientation(struct lcd_dev_s *dev, int orient)
  *
  ****************************************************************************/
 
-static fb_startup_t bk7258_lcd_getstartup(struct lcd_dev_s *dev,
-                                          struct fb_videoinfo_s *vinfo,
-                                          struct fb_planeinfo_s *pinfo)
+static fb_startup_t bk7258_lcd_getstartup(FAR struct lcd_dev_s *dev,
+                                          FAR struct fb_videoinfo_s *vinfo,
+                                          FAR struct fb_planeinfo_s *pinfo)
 {
   vinfo->fmt = FB_FMT_RGB16_565;
   vinfo->xres = BK7258_LCD_WIDTH_VAL;
   vinfo->yres = BK7258_LCD_HEIGHT_VAL;
   vinfo->nplanes = 1;
 
-  pinfo->fbmem = (void *)g_bk7258_lcd.fb;
+  pinfo->fbmem = (FAR void *)g_bk7258_lcd.fb;
   pinfo->fblen = BK7258_LCD_FBSIZE;
   pinfo->stride = BK7258_LCD_STRIDE;
   pinfo->bpp = BK7258_LCD_BPP;
@@ -244,10 +246,10 @@ int bk7258_lcd_initialize(void)
   bk7258_peri_reset(BK7258_PERI_CLK_LCD);
 
   /* 在 PSRAM 中分配帧缓冲 */
-  g_bk7258_lcd.fb = (uint16_t *)kmm_zalloc(BK7258_LCD_FBSIZE);
+  g_bk7258_lcd.fb = (FAR uint16_t *)kmm_zalloc(BK7258_LCD_FBSIZE);
   if (g_bk7258_lcd.fb == NULL)
     {
-      _err("LCD framebuffer alloc failed\n");
+      snerr("LCD framebuffer alloc failed\n");
       return -ENOMEM;
     }
 
@@ -272,7 +274,7 @@ int bk7258_lcd_initialize(void)
   ret = lcd_register(&g_bk7258_lcd.dev);
   if (ret < 0)
     {
-      _err("lcd_register failed: %d\n", ret);
+      snerr("lcd_register failed: %d\n", ret);
       kmm_free(g_bk7258_lcd.fb);
       return ret;
     }
@@ -290,9 +292,9 @@ int bk7258_lcd_initialize(void)
  *
  ****************************************************************************/
 
-void *bk7258_lcd_get_framebuffer(void)
+FAR void *bk7258_lcd_get_framebuffer(void)
 {
-  return (void *)g_bk7258_lcd.fb;
+  return (FAR void *)g_bk7258_lcd.fb;
 }
 
 /****************************************************************************
@@ -349,6 +351,8 @@ int bk7258_touch_initialize(void)
    * - 检测触控芯片
    * - 注册触控设备到 NuttX input 子系统
    */
-  _info("Touch controller init (TODO)\n");
+  sninfo("Touch controller init (TODO)\n");
   return OK;
 }
+
+#endif /* CONFIG_VIDEO_FB && CONFIG_BK7258_LCD */

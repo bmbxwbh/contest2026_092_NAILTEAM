@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  * board/contest_board/src/bk7258_audio.c
  *
  * BK7258 音频 lowerhalf 适配层
@@ -18,6 +18,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined(CONFIG_AUDIO) && defined(CONFIG_BK7258_AUDIO_DSP)
 #include <nuttx/audio/audio.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
@@ -347,3 +349,5 @@ int bk7258_audio_initialize(void)
   syslog(LOG_INFO, "Audio device registered: /dev/audio0\n");
   return OK;
 }
+
+#endif /* CONFIG_AUDIO && CONFIG_BK7258_AUDIO_DSP */

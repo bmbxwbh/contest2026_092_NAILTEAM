@@ -19,6 +19,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_BK7258_AI_ACCEL)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -50,7 +52,7 @@ struct bk7258_ai_s
   int      irq;                /* 中断号 */
   bool     initialized;        /* 初始化标志 */
   uint8_t  mode;               /* 推理模式 (int8/int16) */
-  void    *weightAddr;         /* 权重地址 (AI SRAM) */
+  FAR void *weightAddr;        /* 权重地址 (AI SRAM) */
   sem_t    doneSem;            /* 推理完成信号量 */
 };
 
@@ -70,7 +72,7 @@ static struct bk7258_ai_s g_bk7258_ai;
  * Private Function Prototypes
  ****************************************************************************/
 
-static int bk7258_ai_isr(int irq, void *context, void *arg);
+static int bk7258_ai_isr(int irq, FAR void *context, FAR void *arg);
 
 /****************************************************************************
  * Private Functions
@@ -84,9 +86,9 @@ static int bk7258_ai_isr(int irq, void *context, void *arg);
  *
  ****************************************************************************/
 
-static int bk7258_ai_isr(int irq, void *context, void *arg)
+static int bk7258_ai_isr(int irq, FAR void *context, FAR void *arg)
 {
-  struct bk7258_ai_s *priv = (struct bk7258_ai_s *)arg;
+  FAR struct bk7258_ai_s *priv = (FAR struct bk7258_ai_s *)arg;
   uint32_t status = AI_REG(BK7258_AI_STATUS);
 
   /* 检查错误 */
@@ -123,7 +125,7 @@ static int bk7258_ai_isr(int irq, void *context, void *arg)
 
 int bk7258_ai_accel_initialize(void)
 {
-  struct bk7258_ai_s *priv = &g_bk7258_ai;
+  FAR struct bk7258_ai_s *priv = &g_bk7258_ai;
   int ret;
 
   priv->base = BK7258_AI_BASE;
@@ -143,7 +145,7 @@ int bk7258_ai_accel_initialize(void)
   AI_REG(BK7258_AI_CTRL) = 0;
 
   /* 设置权重地址 (AI 专用 SRAM) */
-  priv->weightAddr = (void *)BK7258_AI_SRAM_BASE;
+  priv->weightAddr = (FAR void *)BK7258_AI_SRAM_BASE;
   AI_REG(BK7258_AI_WEIGHT_ADDR) = (uint32_t)priv->weightAddr;
 
   /* 设置默认推理模式 (int8) */
@@ -175,7 +177,7 @@ int bk7258_ai_accel_initialize(void)
  *
  ****************************************************************************/
 
-int bk7258_ai_load_weights(const void *weights, uint32_t size)
+int bk7258_ai_load_weights(FAR const void *weights, uint32_t size)
 {
   if (!g_bk7258_ai.initialized)
     {
@@ -212,9 +214,9 @@ int bk7258_ai_load_weights(const void *weights, uint32_t size)
  *
  ****************************************************************************/
 
-int bk7258_ai_infer(const void *input, void *output, uint32_t size)
+int bk7258_ai_infer(FAR const void *input, FAR void *output, uint32_t size)
 {
-  struct bk7258_ai_s *priv = &g_bk7258_ai;
+  FAR struct bk7258_ai_s *priv = &g_bk7258_ai;
   int ret;
 
   if (!priv->initialized)
@@ -285,3 +287,5 @@ uint32_t bk7258_ai_get_status(void)
 {
   return AI_REG(BK7258_AI_STATUS);
 }
+
+#endif /* CONFIG_BK7258_AI_ACCEL */

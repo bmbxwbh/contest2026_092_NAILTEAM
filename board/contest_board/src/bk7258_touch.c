@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  * board/contest_board/src/bk7258_touch.c
  *
  * BK7258 触控驱动
@@ -17,6 +17,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined(CONFIG_INPUT) && defined(CONFIG_BK7258_TOUCH)
 #include <nuttx/input/touchscreen.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
@@ -262,3 +264,5 @@ void bk7258_touch_poll(void)
 {
   bk7258_touch_sample(&g_bk7258_touch);
 }
+
+#endif /* CONFIG_INPUT && CONFIG_BK7258_TOUCH */

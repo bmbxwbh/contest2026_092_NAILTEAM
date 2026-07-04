@@ -10,6 +10,8 @@
  *
  ****************************************************************************/
 
+#if defined(CONFIG_TIMER) && defined(CONFIG_BK7258_TIMER)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -76,16 +78,16 @@ static struct bk7258_timer_s g_timers[BK7258_NTIMERS] =
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  bk7258_timer_start(struct timer_lowerhalf_s *dev);
-static int  bk7258_timer_stop(struct timer_lowerhalf_s *dev);
-static int  bk7258_timer_getstatus(struct timer_lowerhalf_s *dev,
-                                   struct timer_status_s *status);
-static int  bk7258_timer_settimeout(struct timer_lowerhalf_s *dev,
+static int  bk7258_timer_start(FAR struct timer_lowerhalf_s *dev);
+static int  bk7258_timer_stop(FAR struct timer_lowerhalf_s *dev);
+static int  bk7258_timer_getstatus(FAR struct timer_lowerhalf_s *dev,
+                                   FAR struct timer_status_s *status);
+static int  bk7258_timer_settimeout(FAR struct timer_lowerhalf_s *dev,
                                     uint32_t timeout);
-static void bk7258_timer_setcallback(struct timer_lowerhalf_s *dev,
-                                     tccb_t callback, void *arg);
-static int  bk7258_timer_maxtimeout(struct timer_lowerhalf_s *dev,
-                                    uint32_t *timeout);
+static void bk7258_timer_setcallback(FAR struct timer_lowerhalf_s *dev,
+                                     tccb_t callback, FAR void *arg);
+static int  bk7258_timer_maxtimeout(FAR struct timer_lowerhalf_s *dev,
+                                    FAR uint32_t *timeout);
 
 /****************************************************************************
  * Private Data
@@ -113,9 +115,9 @@ static const struct timer_ops_s g_bk7258_timer_ops =
  *
  ****************************************************************************/
 
-static int bk7258_timer_isr(int irq, void *context, void *arg)
+static int bk7258_timer_isr(int irq, FAR void *context, FAR void *arg)
 {
-  struct bk7258_timer_s *priv = (struct bk7258_timer_s *)arg;
+  FAR struct bk7258_timer_s *priv = (FAR struct bk7258_timer_s *)arg;
 
   /* 清除中断标志 */
   TIMER_REG(priv->base, BK7258_TIMER_INTCLR) = 1;
@@ -137,9 +139,9 @@ static int bk7258_timer_isr(int irq, void *context, void *arg)
  *
  ****************************************************************************/
 
-static int bk7258_timer_start(struct timer_lowerhalf_s *dev)
+static int bk7258_timer_start(FAR struct timer_lowerhalf_s *dev)
 {
-  struct bk7258_timer_s *priv = (struct bk7258_timer_s *)dev;
+  FAR struct bk7258_timer_s *priv = (FAR struct bk7258_timer_s *)dev;
   uint32_t ctrl = 0;
 
   /* 计算加载值: timeout(us) × freq(Hz) / 1000000 */
@@ -169,9 +171,9 @@ static int bk7258_timer_start(struct timer_lowerhalf_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_timer_stop(struct timer_lowerhalf_s *dev)
+static int bk7258_timer_stop(FAR struct timer_lowerhalf_s *dev)
 {
-  struct bk7258_timer_s *priv = (struct bk7258_timer_s *)dev;
+  FAR struct bk7258_timer_s *priv = (FAR struct bk7258_timer_s *)dev;
   TIMER_REG(priv->base, BK7258_TIMER_CTRL) = 0;
   return OK;
 }
@@ -184,10 +186,10 @@ static int bk7258_timer_stop(struct timer_lowerhalf_s *dev)
  *
  ****************************************************************************/
 
-static int bk7258_timer_getstatus(struct timer_lowerhalf_s *dev,
-                                  struct timer_status_s *status)
+static int bk7258_timer_getstatus(FAR struct timer_lowerhalf_s *dev,
+                                  FAR struct timer_status_s *status)
 {
-  struct bk7258_timer_s *priv = (struct bk7258_timer_s *)dev;
+  FAR struct bk7258_timer_s *priv = (FAR struct bk7258_timer_s *)dev;
 
   status->timeout = priv->period;
   status->timeleft = (TIMER_REG(priv->base, BK7258_TIMER_VALUE) * 1000000) /
@@ -209,10 +211,10 @@ static int bk7258_timer_getstatus(struct timer_lowerhalf_s *dev,
  *
  ****************************************************************************/
 
-static int bk7258_timer_settimeout(struct timer_lowerhalf_s *dev,
+static int bk7258_timer_settimeout(FAR struct timer_lowerhalf_s *dev,
                                    uint32_t timeout)
 {
-  struct bk7258_timer_s *priv = (struct bk7258_timer_s *)dev;
+  FAR struct bk7258_timer_s *priv = (FAR struct bk7258_timer_s *)dev;
   priv->period = timeout;
   return OK;
 }
@@ -225,10 +227,10 @@ static int bk7258_timer_settimeout(struct timer_lowerhalf_s *dev,
  *
  ****************************************************************************/
 
-static void bk7258_timer_setcallback(struct timer_lowerhalf_s *dev,
-                                     tccb_t callback, void *arg)
+static void bk7258_timer_setcallback(FAR struct timer_lowerhalf_s *dev,
+                                     tccb_t callback, FAR void *arg)
 {
-  struct bk7258_timer_s *priv = (struct bk7258_timer_s *)dev;
+  FAR struct bk7258_timer_s *priv = (FAR struct bk7258_timer_s *)dev;
   priv->callback = callback;
   priv->arg = arg;
 }
@@ -241,8 +243,8 @@ static void bk7258_timer_setcallback(struct timer_lowerhalf_s *dev,
  *
  ****************************************************************************/
 
-static int bk7258_timer_maxtimeout(struct timer_lowerhalf_s *dev,
-                                   uint32_t *timeout)
+static int bk7258_timer_maxtimeout(FAR struct timer_lowerhalf_s *dev,
+                                   FAR uint32_t *timeout)
 {
   *timeout = 0xFFFFFFFF;
   return OK;
@@ -262,7 +264,7 @@ static int bk7258_timer_maxtimeout(struct timer_lowerhalf_s *dev,
 
 int bk7258_timer_initialize(void)
 {
-  struct bk7258_timer_s *priv;
+  FAR struct bk7258_timer_s *priv;
   char devname[16];
   int ret;
   int i;
@@ -281,7 +283,7 @@ int bk7258_timer_initialize(void)
       ret = irq_attach(priv->irq, bk7258_timer_isr, priv);
       if (ret < 0)
         {
-          _err("Timer%d irq_attach failed: %d\n", i, ret);
+          snerr("Timer%d irq_attach failed: %d\n", i, ret);
           continue;
         }
 
@@ -289,10 +291,10 @@ int bk7258_timer_initialize(void)
 
       /* 注册到 NuttX */
       snprintf(devname, sizeof(devname), "/dev/timer%d", i);
-      ret = timer_register(devname, (struct timer_lowerhalf_s *)priv);
+      ret = timer_register(devname, (FAR struct timer_lowerhalf_s *)priv);
       if (ret < 0)
         {
-          _err("timer_register(%s) failed: %d\n", devname, ret);
+          snerr("timer_register(%s) failed: %d\n", devname, ret);
         }
       else
         {
@@ -302,3 +304,5 @@ int bk7258_timer_initialize(void)
 
   return OK;
 }
+
+#endif /* CONFIG_TIMER && CONFIG_BK7258_TIMER */

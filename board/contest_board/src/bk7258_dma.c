@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  * board/contest_board/src/bk7258_dma.c
  *
  * BK7258 DMA 驱动
@@ -20,6 +20,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined(CONFIG_BK7258_DMA)
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
 #include <arch/irq.h>
@@ -360,3 +362,5 @@ int bk7258_dma_transfer(uint32_t srcAddr, uint32_t dstAddr, uint32_t size,
 
   return ret;
 }
+
+#endif /* CONFIG_BK7258_DMA */
