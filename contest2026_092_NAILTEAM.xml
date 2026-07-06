@@ -10,7 +10,8 @@
 
   <project path="contest2026_092_NAILTEAM" name="contest2026_092_NAILTEAM">
     <linkfile src="app/hello_app" dest="packages/demos/contest2026_092_hello_app"/>
+    <linkfile src="app/scene_aware_speaker" dest="packages/demos/contest2026_092_scene_aware_speaker"/>
     <linkfile src="quickapp/hello_quickapp" dest="packages/apps/contest2026_092_hello_quickapp"/>
-    <linkfile src="board/contest_board" dest="vendor/openvela/boards/contest2026_092_board"/>
+    <linkfile src="board/contest_board" dest="vendor/allwinnertech/boards/r528/r528s3-gemini-s1"/>
   </project>
 </manifest>

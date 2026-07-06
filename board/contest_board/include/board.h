@@ -1,13 +1,36 @@
-/****************************************************************************
- * board/contest_board/include/board.h
- *
- * BK7258 devkit 板级硬件资源定义
- * AI场景感知智能音箱 - 新硬件平台适配
- *
- ****************************************************************************/
+/* Copyright (c) 2019-2025 Allwinner Technology Co., Ltd. ALL rights reserved.
 
-#ifndef __BOARD_H
-#define __BOARD_H
+ * Allwinner is a trademark of Allwinner Technology Co.,Ltd., registered in
+ * the the People's Republic of China and other countries.
+ * All Allwinner Technology Co.,Ltd. trademarks are used with permission.
+
+ * DISCLAIMER
+ * THIRD PARTY LICENCES MAY BE REQUIRED TO IMPLEMENT THE SOLUTION/PRODUCT.
+ * IF YOU NEED TO INTEGRATE THIRD PARTY’S TECHNOLOGY (SONY, DTS, DOLBY, AVS OR MPEGLA, ETC.)
+ * IN ALLWINNERS’SDK OR PRODUCTS, YOU SHALL BE SOLELY RESPONSIBLE TO OBTAIN
+ * ALL APPROPRIATELY REQUIRED THIRD PARTY LICENCES.
+ * ALLWINNER SHALL HAVE NO WARRANTY, INDEMNITY OR OTHER OBLIGATIONS WITH RESPECT TO MATTERS
+ * COVERED UNDER ANY REQUIRED THIRD PARTY LICENSE.
+ * YOU ARE SOLELY RESPONSIBLE FOR YOUR USAGE OF THIRD PARTY’S TECHNOLOGY.
+
+
+ * THIS SOFTWARE IS PROVIDED BY ALLWINNER"AS IS" AND TO THE MAXIMUM EXTENT
+ * PERMITTED BY LAW, ALLWINNER EXPRESSLY DISCLAIMS ALL WARRANTIES OF ANY KIND,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING WITHOUT LIMITATION REGARDING
+ * THE TITLE, NON-INFRINGEMENT, ACCURACY, CONDITION, COMPLETENESS, PERFORMANCE
+ * OR MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ * IN NO EVENT SHALL ALLWINNER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS, OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef __BOARDS_ARM_R528_PERF1_R528_INCLUDE_BOARD_H
+#define __BOARDS_ARM_R528_PERF1_R528_INCLUDE_BOARD_H
 
 /****************************************************************************
  * Included Files
@@ -16,183 +39,117 @@
 #include <nuttx/config.h>
 
 /****************************************************************************
- * 内存映射定义
+ * Pre-processor Definitions
  ****************************************************************************/
 
-/* 片内 SRAM: 640KB @ 0x20000000 */
-#define BK7258_SRAM_BASE      0x20000000
-#define BK7258_SRAM_SIZE      (640 * 1024)
+/* Clocking *****************************************************************/
 
-/* 外挂 PSRAM: 16MB @ 0x24000000 */
-#define BK7258_PSRAM_BASE     0x24000000
-#define BK7258_PSRAM_SIZE     (16 * 1024 * 1024)
+/* Since NuttX is booted from a loader on the A10, clocking should already
+ * be setup when NuttX starts.
+ */
 
-/* Flash: 64MB (含外挂) @ 0x00000000 */
-#define BK7258_FLASH_BASE     0x00000000
-#define BK7258_FLASH_SIZE     (64 * 1024 * 1024)
+/* LED definitions **********************************************************/
 
-/****************************************************************************
- * 系统时钟定义
- ****************************************************************************/
-
-#define BK7258_XTAL_FREQ      40000000UL   /* 40MHz 外部晶振 */
-#define BK7258_SYSCLK_FREQ    480000000UL  /* 480MHz 系统主频 */
-
-/****************************************************************************
- * 串口配置
- ****************************************************************************/
-
-#define BK7258_UART0_BASE     0x4000A000   /* UART0 基地址 (调试串口) */
-#define BK7258_UART0_BAUD     115200       /* 默认波特率 */
-#define BK7258_UART0_IRQ      4            /* UART0 中断号 (SDK确认: INT_ID_UART0=4) */
-
-/****************************************************************************
- * 中断号定义 (来源于 BK7258 SDK interrupts.h)
- ****************************************************************************/
-
-#define BK7258_INT_ID_UART0    4            /* UART0 中断 (SDK确认) */
-#define BK7258_INT_ID_TIMER0   3            /* TIMER0 中断 (SDK确认) */
-#define BK7258_INT_ID_TIMER1   13           /* TIMER1 中断 (SDK确认) */
-#define BK7258_INT_ID_I2C0     6            /* I2C0 中断 (SDK确认) */
-#define BK7258_INT_ID_I2C1     14           /* I2C1 中断 (SDK确认) */
-#define BK7258_INT_ID_SPI0     7            /* SPI0 中断 (SDK确认) */
-#define BK7258_INT_ID_SPI1     17           /* SPI1 中断 (SDK确认) */
-#define BK7258_INT_ID_PWM0     5            /* PWM0 中断 (SDK确认) */
-#define BK7258_INT_ID_PWM1     43           /* PWM1 中断 (SDK确认) */
-#define BK7258_INT_ID_GPIO     55           /* GPIO 中断 (SDK确认) */
-#define BK7258_INT_ID_I2S0     24           /* I2S0 中断 (SDK确认) */
-#define BK7258_INT_ID_AUD      23           /* AUDIO 中断 (SDK确认) */
-#define BK7258_INT_ID_LCD      27           /* LCD 中断 (SDK确认) */
-#define BK7258_INT_ID_GDMA     11           /* GDMA 中断 (SDK确认) */
-#define BK7258_INT_ID_QSPI0    20           /* QSPI0/FLASH 中断 (SDK确认) */
-
-/* AON WDT 基地址 (无独立中断号, 使用 AON 域) */
-#define BK7258_AON_WDT_BASE    0x44000600   /* AON WDT 基地址 (SDK确认) */
-
-/****************************************************************************
- * LED / 按键 GPIO
- ****************************************************************************/
-
-#define BK7258_LED_GPIO       26           /* 板载 LED GPIO (SDK确认: BK7258 EVB GPIO26) */
-#define BK7258_KEY_GPIO       27           /* 板载按键 GPIO (SDK确认: BK7258 EVB GPIO27) */
-
-/****************************************************************************
- * 音频接口
- ****************************************************************************/
-
-#define BK7258_I2S0_BASE      0x4000B000   /* I2S0 基地址 (音频采集) */
-#define BK7258_AUDIO_SRATE    16000        /* 采样率 16kHz */
-#define BK7258_AUDIO_BITS     16           /* 位深 16bit */
-#define BK7258_MIC_CHANNELS   2            /* 双麦阵列 */
-
-/****************************************************************************
- * LCD 接口
- ****************************************************************************/
-
-#define BK7258_LCD_BASE       0x4000C000   /* LCD 控制器基地址 */
-#define BK7258_LCD_WIDTH      480          /* LCD 宽度 */
-#define BK7258_LCD_HEIGHT     320          /* LCD 高度 */
-#define BK7258_LCD_BPP        16           /* 16位色深 RGB565 */
-
-/****************************************************************************
- * AI 加速器接口
- ****************************************************************************/
-
-#define BK7258_AI_BASE        0x4000D000   /* AI 加速器基地址 */
-#define BK7258_AI_SRAM_BASE   0x20080000   /* AI 专用 SRAM 基地址 */
-#define BK7258_AI_SRAM_SIZE   (128 * 1024) /* AI 专用 SRAM 128KB */
-
-/****************************************************************************
- * WiFi / BLE
- ****************************************************************************/
-
-#define BK7258_WIFI_BASE      0x4000E000   /* WiFi 控制器基地址 */
-#define BK7258_BLE_BASE       0x4000F000   /* BLE 控制器基地址 */
-
-/****************************************************************************
- * 堆内存配置 (供 NuttX mm 使用)
- ****************************************************************************/
-
-/* 主堆区使用 PSRAM, 容量大, 适合应用与 AI 模型 */
-#define BOARD_HEAP_BASE       BK7258_PSRAM_BASE
-#define BOARD_HEAP_SIZE       (BK7258_PSRAM_SIZE - (256 * 1024))
-
-/* 辅助堆区使用 SRAM, 速度快, 适合中断/驱动 */
-#define BOARD_HEAP2_BASE      (BK7258_SRAM_BASE + 0x10000)
-#define BOARD_HEAP2_SIZE      (BK7258_SRAM_SIZE - 0x10000)
-
-/****************************************************************************
- * 公共函数声明
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/****************************************************************************
- * Name: openvela_board_initialize
+/* The pcDuino v1 has four green LEDs; three can be controlled from software.
+ * Two are tied to ground and, hence, illuminated by driving the output pins
+ * to a high value:
  *
- * Description:
- *   板级早期初始化, 在 NuttX 启动早期被调用 (head stage)。
- *   完成最小硬件初始化: 时钟、串口、GPIO。
+ *  1. LED1 SPI0_CLK  SPI0_CLK/UART5_RX/EINT23/PI11
+ *  2. LED5 IPSOUT    From the PMU (not controllable by software)
  *
- ****************************************************************************/
+ * And two are pull high and, hence, illuminated by grounding the output:
+ *
+ *   3. LED3 RX_LED    LCD1_D16/ATAD12/KP_IN6/SMC_DET/EINT16/CSI1_D16/PH16
+ *   4. LED4 TX_LED    LCD1_D15/ATAD11/KP_IN5/SMC_VPPPP/EINT15/CSI1_D15/PH15
+ */
 
-void openvela_board_initialize(void);
+/* LED index values for use with board_userled() */
+
+#define BOARD_LED1        0
+#define BOARD_NLEDS       1
+
+/* LED bits for use with board_userled_all() */
+
+#define BOARD_LED1_BIT    (1 << BOARD_LED1)
+
+/* These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
+ * defined.  In that case, the usage by the board port is defined in
+ * include/board.h and src/r528_leds.c. The LEDs are used to encode OS-related
+ * events as follows:
+ *
+ *      SYMBOL            Value Meaning                    LED state
+ *                                                    LED1 LED3 LED4
+ *      ----------------- ----- -----------------------  ---- ---- --------
+ */
+
+#define LED_STARTED         0   /* NuttX has been started   ON   OFF  OFF */
+#define LED_HEAPALLOCATE    1   /* Heap has been allocated  OFF  ON   OFF */
+#define LED_IRQSENABLED     2   /* Interrupts enabled       ON   ON   OFF */
+#define LED_STACKCREATED    2   /* Idle stack created       ON   ON   OFF */
+#define LED_INIRQ           3   /* In an interrupt          N/C  N/C  Soft glow */
+#define LED_SIGNAL          3   /* In a signal handler      N/C  N/C  Soft glow */
+#define LED_ASSERTION       3   /* An assertion failed      N/C  N/C  Soft glow */
+#define LED_PANIC           3   /* The system has crashed   N/C  N/C  2Hz Flashing */
+
+/*      LED_IDLE           ---  /* MCU is is sleep mode         Not used
+ *
+ * After booting, LED1 and 3 are not longer used by the system and can be
+ * used for other purposes by the application (Of course, all LEDs are
+ * available to the application if CONFIG_ARCH_LEDS is not defined.
+ */
+
+/* Button definitions *******************************************************/
+
+/* There are a total of five switches on-board.
+ * All pulled high and, hence, will be sensed as low when closed.
+ *
+ *   SW1 Reset     (not available to software)
+ *   SW2 UBOOT     UBOOT_SEL (?)
+ *   SW3 Key_Back  LCD1_D17/ATAD13/KP_IN7/SMC_VCCEN/EINT17/CSI1_D17/PH17
+ *   SW4 Key_Home  LCD1_D18/ATAD14/KP_OUT0/SMC_SLK/EINT18/CSI1_D18/PH18
+ *   SW5 Key_Menu  LCD1_D19/ATAD15/KP_OUT1/SMC_SDA/EINT19/CSI1_D19/PH19
+ */
+
+#define BUTTON_KEY_BACK     0
+#define BUTTON_KEY_HOME     1
+#define BUTTON_KEY_MENU     2
+#define NUM_BUTTONS         5
+
+#define BUTTON_KEY_BACK_BIT (1 << BUTTON_KEY_BACK)
+#define BUTTON_KEY_HOME_BIT (1 << BUTTON_KEY_HOME)
+#define BUTTON_KEY_MENU_BIT (1 << BUTTON_KEY_MENU)
+
+/* NAND *********************************************************************/
+
+/* GPIO pin disambiguation **************************************************/
+
+/* UARTs ********************************************************************/
+
+/* Two UART connections are available:
+ *
+ * 1. UART0 is available on J5 Debug Port.
+ *
+ *    J15 Pin 1 Rx                UART0-RX  UART0_RX/IR1_RX/PB23
+ *    J15 Pin 2 Tx                UART0-TX  UART0_TX/IR1_TX/PB22
+ *
+ * 2. UART2 is available on J11
+ *
+ *    J11 Pin1  UART-Rx / GPIO0   UART2_RX  EINT31/SPI1_MISO/UART2_RX/PI19
+ *    J11 Pin2  UART-Tx / GPIO1   UART2_TX  EINT30/SPI1_MOSI/UART2_TX/PI18
+ */
+
+#define PIO_UART0_RX    PIO_UART0_RX_1
+#define PIO_UART0_TX    PIO_UART0_TX_1
+
+#define PIO_UART2_RX    PIO_UART2_RX_1
+#define PIO_UART2_TX    PIO_UART2_TX_1
 
 /****************************************************************************
- * Name: bk7258_early_initialize
- *
- * Description:
- *   L0 基础初始化 (IRQ/UART/GPIO), 在 board_early_initialize() 中调用。
- *   无阻塞、无堆、无总线操作。
- *
+ * Assembly Language Macros
  ****************************************************************************/
 
-int bk7258_early_initialize(void);
-
-/****************************************************************************
- * Name: bk7258_bringup
- *
- * Description:
- *   L1-L3 外设驱动注册, 在 board_late_initialize() 中调用。
- *   调度器就绪, 允许阻塞。I2C/SPI 总线初始化在此执行。
- *
- ****************************************************************************/
-
-int bk7258_bringup(void);
-
-/****************************************************************************
- * Name: bk7258_app_initialize
- *
- * Description:
- *   L4-L5 应用级驱动注册 (AI/PM/WDT), 在 board_app_initialize() 中调用。
- *   NSH 任务上下文。
- *
- ****************************************************************************/
-
-int bk7258_app_initialize(void);
-
-/****************************************************************************
- * Name: bk7258_final_initialize
- *
- * Description:
- *   预留: 需文件系统/KVDB 的驱动注册, 在 board_app_finalinitialize() 中调用。
- *
- ****************************************************************************/
-
-#if defined(CONFIG_BOARDCTL_FINALINIT)
-int bk7258_final_initialize(void);
-#endif
-
-/****************************************************************************
- * Name: bk7258_boardinitialize
- *
- * Description:
- *   板级初始化入口, 调用 openvela_board_initialize。
- *
- ****************************************************************************/
-
-void bk7258_boardinitialize(void);
-
+#ifdef __ASSEMBLY__
+  .macro config_sdram
+  .endm
 #endif /* __ASSEMBLY__ */
-
-#endif /* __BOARD_H */
+#endif  /* __BOARDS_ARM_r528_PCDUINO_A10_INCLUDE_BOARD_H */

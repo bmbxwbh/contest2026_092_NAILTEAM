@@ -1,0 +1,62 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_SCENE_AWARE_SPEAKER
+	bool "AI Scene-Aware Smart Speaker"
+	default n
+	depends on AUDIO
+	---help---
+		Enable the AI scene-aware smart speaker application.
+		Supports voice wake word detection, scene recognition
+		via TFLite Micro, cloud AI Agent connectivity, and
+		smart home device control on the Gemini-S1 (R528) board.
+
+if EXAMPLES_SCENE_AWARE_SPEAKER
+
+config SCENE_AWARE_SPEAKER_PRIORITY
+	int "Speaker app task priority"
+	default 100
+
+config SCENE_AWARE_SPEAKER_STACKSIZE
+	int "Speaker app stack size"
+	default 8192
+
+config SCENE_AWARE_SPEAKER_AUDIO_DEV_CAPTURE
+	string "Audio capture device path"
+	default "/dev/audio/pcm0c"
+
+config SCENE_AWARE_SPEAKER_AUDIO_DEV_PLAYBACK
+	string "Audio playback device path"
+	default "/dev/audio/pcm0p"
+
+config SCENE_AWARE_SPEAKER_SAMPLE_RATE
+	int "Audio sample rate (Hz)"
+	default 16000
+
+config SCENE_AWARE_SPEAKER_CHANNELS
+	int "Number of audio channels"
+	default 1
+
+config SCENE_AWARE_SPEAKER_FRAME_SIZE
+	int "Audio frame size (bytes)"
+	default 640
+
+config SCENE_AWARE_SPEAKER_WAKE_WORD
+	string "Wake word string"
+	default "ni hao openvela"
+
+config SCENE_AWARE_SPEAKER_CLOUD_URL
+	string "Cloud AI Agent base URL"
+	default "http://192.168.1.100:8080"
+
+config SCENE_AWARE_SPEAKER_MIHOME_API
+	string "MiHome API endpoint"
+	default "https://mihome-api.example.com"
+
+config SCENE_AWARE_SPEAKER_SCENE_INTERVAL_MS
+	int "Scene detection interval (ms)"
+	default 2000
+
+endif
