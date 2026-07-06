@@ -10,8 +10,6 @@
 #include "audio_pipeline.h"
 #include "device_state.h"
 
-extern "C" void bk7258_tflite_register_ops(tflite::MicroMutableOpResolver<10>*);
-
 #define ANOM_ARENA (64*1024)
 static tflite::MicroInterpreter *g_ai = nullptr;
 static TfLiteTensor *g_in=nullptr, *g_out=nullptr;
@@ -28,7 +26,13 @@ bool anomaly_init(const char *model_path)
   if(fread(g_model,1,sz,f)!=(size_t)sz){ fclose(f); free(g_model); g_model=nullptr; return false; }
   fclose(f);
   static tflite::MicroMutableOpResolver<10> res;
-  bk7258_tflite_register_ops(&res); res.AddSoftmax();
+  res.AddConv2D();
+  res.AddDepthwiseConv2D();
+  res.AddFullyConnected();
+  res.AddSoftmax();
+  res.AddReshape();
+  res.AddAveragePool2D();
+  res.AddMaxPool2D();
   const tflite::Model *m = tflite::GetModel(g_model);
   g_arena=(uint8_t*)malloc(ANOM_ARENA);
   if(!g_arena){ syslog(LOG_ERR,"anom arena malloc fail\n"); return false; }
@@ -60,8 +64,8 @@ extern "C" int anomaly_task(int argc, char *argv[])
   while(1)
     {
       int got=0, fail=0;
-      while(got<8000-512 && fail<100){ if(audio_pipeline_read_frame(buf+got,512)) got+=512; else {fail++; usleep(10000);} }
-      if (got<8000-512) { syslog(LOG_WARNING,"audio starved, skip anomaly\n"); continue; }
+      while(got<8000-FRAME_SAMPLES && fail<100){ if(audio_pipeline_read_frame(buf+got,FRAME_SAMPLES)) got+=FRAME_SAMPLES; else {fail++; usleep(10000);} }
+      if (got<8000-FRAME_SAMPLES) { syslog(LOG_WARNING,"audio starved, skip anomaly\n"); continue; }
       anomaly_type_t a;
       if (anomaly_detect(buf,got,&a) && a!=ANOMALY_NONE)
         { device_state_set_anomaly(a); syslog(LOG_WARNING,"[ANOMALY] %s\n", anomaly_type_name(a)); }

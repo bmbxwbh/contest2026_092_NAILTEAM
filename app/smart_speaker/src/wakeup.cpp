@@ -10,8 +10,6 @@
 #include "audio_pipeline.h"
 #include "device_state.h"
 
-extern "C" void bk7258_tflite_register_ops(tflite::MicroMutableOpResolver<10>*);
-
 #define KWS_ARENA (64 * 1024)
 static tflite::MicroInterpreter *g_kws = nullptr;
 static TfLiteTensor *g_in = nullptr, *g_out = nullptr;
@@ -29,8 +27,13 @@ bool wakeup_init(const char *model_path)
   fclose(f);
 
   static tflite::MicroMutableOpResolver<10> res;
-  bk7258_tflite_register_ops(&res);
+  res.AddConv2D();
+  res.AddDepthwiseConv2D();
+  res.AddFullyConnected();
   res.AddSoftmax();
+  res.AddReshape();
+  res.AddAveragePool2D();
+  res.AddMaxPool2D();
 
   const tflite::Model *m = tflite::GetModel(g_model);
   g_arena = (uint8_t*)malloc(KWS_ARENA);
@@ -47,7 +50,7 @@ bool wakeup_init(const char *model_path)
 bool wakeup_detect(const int16_t *pcm_frame, int n)
 {
   if (!g_kws) return false;
-  for (int i = 0; i < n && i < 512 && i < (int)g_in->bytes; i++) g_in->data.int8[i] = (int8_t)(pcm_frame[i] >> 8);
+  for (int i = 0; i < n && i < FRAME_SAMPLES && i < (int)g_in->bytes; i++) g_in->data.int8[i] = (int8_t)(pcm_frame[i] >> 8);
   if (g_kws->Invoke() != kTfLiteOk) return false;
   float p = (float)g_out->data.int8[1] / 127.0f;  /* class1 = keyword */
   g_smooth = 0.8f * g_smooth + 0.2f * p;

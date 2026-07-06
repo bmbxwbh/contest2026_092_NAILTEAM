@@ -3,17 +3,50 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
-config SMART_SPEAKER_APP
+config EXAMPLES_SMART_SPEAKER
 	bool "AI Scene-Aware Smart Speaker app"
 	default n
+	select AUDIO
 	---help---
 		AI scene-aware smart speaker: scene recognition, wakeup,
 		AI Agent, pluggable IoT HAL, anomaly alert, LVGL UI.
+		Target: Gemini-S1 (R528).
+
+if EXAMPLES_SMART_SPEAKER
+
+config SMART_SPEAKER_PRIORITY
+	int "Speaker main task priority"
+	default 100
+
+config SMART_SPEAKER_STACKSIZE
+	int "Speaker main task stack size"
+	default 8192
+
+config SMART_SPEAKER_AUDIO_DEV_CAPTURE
+	string "Audio capture device path"
+	default "/dev/audio/pcm0c"
+
+config SMART_SPEAKER_AUDIO_DEV_PLAYBACK
+	string "Audio playback device path"
+	default "/dev/audio/pcm0p"
+
+config SMART_SPEAKER_SAMPLE_RATE
+	int "Audio sample rate (Hz)"
+	default 16000
+
+config SMART_SPEAKER_CHANNELS
+	int "Number of audio channels"
+	default 1
+
+config SMART_SPEAKER_FRAME_MS
+	int "Audio frame duration (ms)"
+	default 20
 
 config SMART_SPEAKER_IOT_MIOT
 	bool "Use Mihome (米家) IoT backend (requires SDK + license)"
 	default n
-	depends on SMART_SPEAKER_APP
 	---help---
 		Enable Mihome backend. Off = local-simulation backend (full demo
 		without Mihome account). 接口已按米家协议预留.
+
+endif

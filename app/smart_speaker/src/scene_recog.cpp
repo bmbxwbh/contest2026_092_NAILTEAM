@@ -16,8 +16,6 @@
 #include "audio_pipeline.h"
 #include "device_state.h"
 
-extern "C" void bk7258_tflite_register_ops(tflite::MicroMutableOpResolver<10>*);
-
 #define ARENA_SIZE  (256 * 1024)
 #define INPUT_T  98
 #define INPUT_F  13
@@ -49,8 +47,16 @@ bool scene_recog_init(const char *model_path)
     { free(g_model_buf); g_model_buf = nullptr; syslog(LOG_ERR, "read model short: %zd/%ld\n", rd, (long)sz); return false; }
 
   static tflite::MicroMutableOpResolver<10> resolver;
-  bk7258_tflite_register_ops(&resolver);
+  resolver.AddConv2D();
+  resolver.AddDepthwiseConv2D();
+  resolver.AddFullyConnected();
   resolver.AddSoftmax();
+  resolver.AddReshape();
+  resolver.AddAveragePool2D();
+  resolver.AddMaxPool2D();
+  resolver.AddPad();
+  resolver.AddQuantize();
+  resolver.AddDequantize();
 
   const tflite::Model *model = tflite::GetModel(g_model_buf);
   g_arena = (uint8_t*)malloc(ARENA_SIZE);
@@ -98,12 +104,12 @@ extern "C" int scene_recog_task(int argc, char *argv[])
     {
       int got = 0;
       int fail = 0;
-      while (got < 16000 - 512 && fail < 100)
+      while (got < 16000 - FRAME_SAMPLES && fail < 100)
         {
-          if (audio_pipeline_read_frame(pcm1s + got, 512)) got += 512;
+          if (audio_pipeline_read_frame(pcm1s + got, FRAME_SAMPLES)) got += FRAME_SAMPLES;
           else { fail++; usleep(10000); }
         }
-      if (got < 16000 - 512) { syslog(LOG_WARNING, "audio starved, skip frame\n"); continue; }
+      if (got < 16000 - FRAME_SAMPLES) { syslog(LOG_WARNING, "audio starved, skip frame\n"); continue; }
       scene_type_t s; float conf;
       if (scene_recog_infer(pcm1s, got, &s, &conf)) device_state_set_scene(s, conf);
     }
