@@ -9,9 +9,11 @@ config EXAMPLES_SCENE_AWARE_SPEAKER
 	depends on AUDIO
 	---help---
 		Enable the AI scene-aware smart speaker application.
-		Supports voice wake word detection, scene recognition
-		via TFLite Micro, cloud AI Agent connectivity, and
-		smart home device control on the Gemini-S1 (R528) board.
+		Supports local voice wake word detection, scene recognition
+		via TFLite Micro with sensor fusion, and smart home device
+		control simulation on the Gemini-S1 (R528) board.
+
+		All AI inference runs locally on device (no cloud dependency).
 
 if EXAMPLES_SCENE_AWARE_SPEAKER
 
@@ -47,16 +49,38 @@ config SCENE_AWARE_SPEAKER_WAKE_WORD
 	string "Wake word string"
 	default "ni hao openvela"
 
-config SCENE_AWARE_SPEAKER_CLOUD_URL
-	string "Cloud AI Agent base URL"
-	default "http://192.168.1.100:8080"
-
-config SCENE_AWARE_SPEAKER_MIHOME_API
-	string "MiHome API endpoint"
-	default "https://mihome-api.example.com"
-
 config SCENE_AWARE_SPEAKER_SCENE_INTERVAL_MS
 	int "Scene detection interval (ms)"
 	default 2000
+
+config SCENE_AWARE_SPEAKER_USE_SPEEXDSP
+	bool "Use SpeexDSP for audio preprocessing"
+	default y
+	depends on AUDIOUTILS_SPEEXDSP
+	---help---
+		Enable SpeexDSP for noise reduction, AGC, and AEC.
+		Requires CONFIG_AUDIOUTILS_SPEEXDSP to be enabled.
+
+config SCENE_AWARE_SPEAKER_USE_TFLITE
+	bool "Use TFLite Micro for scene detection"
+	default n
+	---help---
+		Enable TFLite Micro for scene classification.
+		When disabled, uses rule-based fallback detection.
+
+config SCENE_AWARE_SPEAKER_USE_SENSORS
+	bool "Use sensor fusion for scene detection"
+	default y
+	depends on SENSORS
+	---help---
+		Fuse sensor data (temperature, humidity, VOC, light)
+		with audio features for improved scene detection accuracy.
+
+config SCENE_AWARE_SPEAKER_MIHOME_SIM
+	bool "Enable MiHome simulator for demo"
+	default y
+	---help---
+		Simulate MiHome device control actions for demo purposes.
+		Outputs control commands to serial log and LVGL UI.
 
 endif
