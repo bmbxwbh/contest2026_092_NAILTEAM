@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 场景感知智能音箱 - UI 预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0D1117 0%, #161B22 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* 手机外壳 */
+        .phone-frame {
+            width: 280px;
+            height: 400px;
+            background: linear-gradient(145deg, #1a1a2e, #0D1117);
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 240px;
+            height: 320px;
+            background: #0D1117;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
+        }
+
+        /* Header 区域 */
+        .header {
+            background: linear-gradient(135deg, #161B22, #1C2333);
+            padding: 12px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #21262D;
+        }
+
+        .scene-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .scene-info {
+            flex: 1;
+        }
+
+        .scene-name {
+            color: #E6EDF3;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 6px;
+            background: #30363D;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 2px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease, background 0.3s ease;
+        }
+
+        .confidence-text {
+            color: #8B949E;
+            font-size: 11px;
+        }
+
+        /* 传感器区域 */
+        .sensors {
+            background: #1C2333;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-around;
+            height: 35px;
+            align-items: center;
+            border-bottom: 1px solid #21262D;
+        }
+
+        .sensor-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #E6EDF3;
+            font-size: 11px;
+        }
+
+        .sensor-icon {
+            font-size: 14px;
+        }
+
+        /* 设备列表区域 */
+        .device-list {
+            background: #21262D;
+            padding: 10px;
+            height: 145px;
+            overflow-y: auto;
+        }
+
+        .device-title {
+            color: #8B949E;
+            font-size: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .device-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #30363D;
+            transition: all 0.3s ease;
+        }
+
+        .device-item:last-child {
+            border-bottom: none;
+        }
+
+        .device-status {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .device-status.on {
+            background: #3FB950;
+            color: white;
+            box-shadow: 0 0 10px rgba(63, 185, 80, 0.3);
+        }
+
+        .device-status.off {
+            background: #30363D;
+            color: #8B949E;
+        }
+
+        .device-name {
+            flex: 1;
+            color: #E6EDF3;
+            font-size: 12px;
+        }
+
+        .device-state {
+            color: #8B949E;
+            font-size: 11px;
+        }
+
+        /* 状态栏区域 */
+        .status-bar {
+            background: #161B22;
+            padding: 8px 12px;
+            height: 55px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+
+        .status-active {
+            color: #3FB950;
+        }
+
+        .status-inactive {
+            color: #8B949E;
+        }
+
+        .mode-badge {
+            background: linear-gradient(135deg, #58A6FF, #3FB950);
+            color: #0D1117;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            background: linear-gradient(145deg, #161B22, #1C2333);
+            border-radius: 16px;
+            padding: 20px;
+            width: 320px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .control-title {
+            color: #E6EDF3;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-subtitle {
+            color: #8B949E;
+            font-size: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #21262D;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+        }
+
+        .control-section-title {
+            color: #8B949E;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .scene-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .scene-btn {
+            padding: 12px;
+            border: 2px solid #30363D;
+            border-radius: 10px;
+            background: #21262D;
+            color: #E6EDF3;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .scene-btn:hover {
+            border-color: #58A6FF;
+            background: #1C2333;
+            transform: translateY(-2px);
+        }
+
+        .scene-btn.active {
+            border-color: var(--scene-color);
+            background: rgba(var(--scene-color-rgb), 0.15);
+            box-shadow: 0 0 20px rgba(var(--scene-color-rgb), 0.2);
+        }
+
+        .scene-btn-icon {
+            font-size: 20px;
+        }
+
+        .sensor-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .sensor-control {
+            background: #21262D;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .sensor-label {
+            color: #8B949E;
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+
+        .sensor-slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #30363D;
+            outline: none;
+        }
+
+        .sensor-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #58A6FF;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .sensor-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .sensor-value {
+            color: #E6EDF3;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #58A6FF, #3FB950);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 场景颜色变量 */
+        .scene-home { --scene-color: #3FB950; --scene-color-rgb: 63, 185, 80; }
+        .scene-sleep { --scene-color: #79C0FF; --scene-color-rgb: 121, 192, 255; }
+        .scene-cooking { --scene-color: #D29922; --scene-color-rgb: 210, 153, 34; }
+        .scene-working { --scene-color: #58A6FF; --scene-color-rgb: 88, 166, 255; }
+        .scene-entertainment { --scene-color: #BC8CF2; --scene-color-rgb: 188, 140, 242; }
+
+        /* 动画 */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes sceneChange {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .processing {
+            animation: pulse 1s infinite;
+        }
+
+        .scene-changing {
+            animation: sceneChange 0.3s ease;
+        }
+
+        /* 自动演示指示器 */
+        .auto-demo-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #D29922;
+            color: #0D1117;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .auto-demo-indicator.active {
+            display: block;
+            animation: pulse 2s infinite;
+        }
+
+        /* 响应式 */
+        @media (max-width: 700px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 手机屏幕 -->
+        <div class="phone-frame">
+            <div class="phone-screen">
+                <div class="auto-demo-indicator" id="autoDemoIndicator">自动演示中</div>
+
+                <!-- Header -->
+                <div class="header">
+                    <div class="scene-icon" id="sceneIcon" style="background: rgba(63, 185, 80, 0.2); color: #3FB950;">
+                        🏠
+                    </div>
+                    <div class="scene-info">
+                        <div class="scene-name" id="sceneName">居家模式</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceFill" style="width: 85%; background: #3FB950;"></div>
+                        </div>
+                        <div class="confidence-text" id="confidenceText">置信度: 85%</div>
+                    </div>
+                </div>
+
+                <!-- 传感器 -->
+                <div class="sensors">
+                    <div class="sensor-item">
+                        <span class="sensor-icon">🌡️</span>
+                        <span id="tempValue">25.5°C</span>
+                    </div>
+                    <div class="sensor-item">
+                        <span class="sensor-icon">💧</span>
+                        <span id="humidityValue">50%</span>
+                    </div>
+                    <div class="sensor-item">
+                        <span class="sensor-icon">⚠️</span>
+                        <span id="vocValue">120</span>
+                    </div>
+                </div>
+
+                <!-- 设备列表 -->
+                <div class="device-list">
+                    <div class="device-title">🏠 联动设备 (<span id="deviceCount">3</span>)</div>
+                    <div id="deviceList">
+                        <!-- 设备项会动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 状态栏 -->
+                <div class="status-bar">
+                    <div class="status-row">
+                        <div class="status-item status-active" id="stateDisplay">
+                            🎤 持续监听中
+                        </div>
+                        <div class="status-item" id="volumeDisplay">
+                            🔊 50%
+                        </div>
+                    </div>
+                    <div class="status-row">
+                        <div class="mode-badge">本地AI模式</div>
+                        <div class="status-item status-inactive" id="uptimeDisplay">
+                            ⏱️ 00:00:00
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="control-title">🎮 交互控制面板</div>
+            <div class="control-subtitle">
+                系统持续监听环境音，自动识别场景并联动设备
+            </div>
+
+            <!-- 场景选择 -->
+            <div class="control-section">
+                <div class="control-section-title">场景切换（自动识别）</div>
+                <div class="scene-buttons">
+                    <button class="scene-btn scene-home active" onclick="setScene('home')">
+                        <span class="scene-btn-icon">🏠</span>
+                        <span>居家</span>
+                    </button>
+                    <button class="scene-btn scene-sleep" onclick="setScene('sleep')">
+                        <span class="scene-btn-icon">😴</span>
+                        <span>睡眠</span>
+                    </button>
+                    <button class="scene-btn scene-cooking" onclick="setScene('cooking')">
+                        <span class="scene-btn-icon">🍳</span>
+                        <span>烹饪</span>
+                    </button>
+                    <button class="scene-btn scene-working" onclick="setScene('working')">
+                        <span class="scene-btn-icon">💻</span>
+                        <span>工作</span>
+                    </button>
+                    <button class="scene-btn scene-entertainment" onclick="setScene('entertainment')">
+                        <span class="scene-btn-icon">🎬</span>
+                        <span>娱乐</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 传感器模拟 -->
+            <div class="control-section">
+                <div class="control-section-title">传感器模拟（影响识别）</div>
+                <div class="sensor-controls">
+                    <div class="sensor-control">
+                        <div class="sensor-label">🌡️ 温度</div>
+                        <input type="range" class="sensor-slider" id="tempSlider" min="15" max="40" value="25" oninput="updateSensor('temp')">
+                        <div class="sensor-value" id="tempSliderValue">25°C</div>
+                    </div>
+                    <div class="sensor-control">
+                        <div class="sensor-label">💧 湿度</div>
+                        <input type="range" class="sensor-slider" id="humiditySlider" min="0" max="100" value="50" oninput="updateSensor('humidity')">
+                        <div class="sensor-value" id="humiditySliderValue">50%</div>
+                    </div>
+                    <div class="sensor-control">
+                        <div class="sensor-label">⚠️ VOC</div>
+                        <input type="range" class="sensor-slider" id="vocSlider" min="0" max="1000" value="120" oninput="updateSensor('voc')">
+                        <div class="sensor-value" id="vocSliderValue">120</div>
+                    </div>
+                    <div class="sensor-control">
+                        <div class="sensor-label">☀️ 光照</div>
+                        <input type="range" class="sensor-slider" id="lightSlider" min="0" max="1000" value="300" oninput="updateSensor('light')">
+                        <div class="sensor-value" id="lightSliderValue">300 lux</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自动演示 -->
+            <div class="control-section">
+                <div class="control-section-title">自动演示（模拟场景切换）</div>
+                <button class="action-btn" onclick="toggleAutoDemo()" id="autoDemoBtn">
+                    ▶️ 启动自动演示
+                </button>
+            </div>
+
+            <!-- 状态控制 -->
+            <div class="control-section">
+                <div class="control-section-title">系统控制</div>
+                <div class="sensor-controls">
+                    <div class="sensor-control">
+                        <div class="sensor-label">🔊 音量</div>
+                        <input type="range" class="sensor-slider" id="volumeSlider" min="0" max="100" value="50" oninput="updateVolume()">
+                        <div class="sensor-value" id="volumeSliderValue">50%</div>
+                    </div>
+                    <div class="sensor-control">
+                        <div class="sensor-label">🎤 唤醒词测试</div>
+                        <button class="action-btn" onclick="simulateWakeWord()" style="padding: 8px; font-size: 12px;">
+                            "你好 openvela"
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 场景配置
+        const scenes = {
+            home: {
+                name: '居家模式',
+                icon: '🏠',
+                color: '#3FB950',
+                colorRgb: '63, 185, 80',
+                devices: [
+                    { name: '客厅灯', state: '开启 70%', on: true },
+                    { name: '空调', state: '设为 25°C', on: true },
+                    { name: '窗帘', state: '打开', on: true },
+                    { name: '电视', state: '关闭', on: false },
+                    { name: '氛围灯', state: '关闭', on: false }
+                ]
+            },
+            sleep: {
+                name: '睡眠模式',
+                icon: '😴',
+                color: '#79C0FF',
+                colorRgb: '121, 192, 255',
+                devices: [
+                    { name: '卧室灯', state: '关闭', on: false },
+                    { name: '空调', state: '设为 26°C', on: true },
+                    { name: '窗帘', state: '关闭', on: true },
+                    { name: '音箱', state: '音量 20%', on: true }
+                ]
+            },
+            cooking: {
+                name: '烹饪模式',
+                icon: '🍳',
+                color: '#D29922',
+                colorRgb: '210, 153, 34',
+                devices: [
+                    { name: '厨房灯', state: '开启 100%', on: true },
+                    { name: '油烟机', state: '高速运转', on: true },
+                    { name: '排气扇', state: '开启', on: true }
+                ]
+            },
+            working: {
+                name: '工作模式',
+                icon: '💻',
+                color: '#58A6FF',
+                colorRgb: '88, 166, 255',
+                devices: [
+                    { name: '书房灯', state: '开启 100%', on: true },
+                    { name: '空调', state: '设为 24°C', on: true },
+                    { name: '音箱', state: '音量 30%', on: true }
+                ]
+            },
+            entertainment: {
+                name: '娱乐模式',
+                icon: '🎬',
+                color: '#BC8CF2',
+                colorRgb: '188, 140, 242',
+                devices: [
+                    { name: '客厅灯', state: '调至 30%', on: true },
+                    { name: '氛围灯', state: '暖色开启', on: true },
+                    { name: '电视', state: '开启', on: true },
+                    { name: '窗帘', state: '关闭', on: true }
+                ]
+            }
+        };
+
+        let currentScene = 'home';
+        let uptimeSeconds = 0;
+        let autoDemoInterval = null;
+        let autoDemoIndex = 0;
+        const sceneOrder = ['home', 'cooking', 'working', 'entertainment', 'sleep'];
+
+        // 初始化
+        function init() {
+            setScene('home');
+            setInterval(updateUptime, 1000);
+        }
+
+        // 设置场景
+        function setScene(scene) {
+            currentScene = scene;
+            const sceneData = scenes[scene];
+
+            // 更新按钮状态
+            document.querySelectorAll('.scene-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.scene-${scene}`).classList.add('active');
+
+            // 更新场景图标（带动画）
+            const icon = document.getElementById('sceneIcon');
+            icon.classList.add('scene-changing');
+            setTimeout(() => icon.classList.remove('scene-changing'), 300);
+
+            icon.textContent = sceneData.icon;
+            icon.style.background = `rgba(${sceneData.colorRgb}, 0.2)`;
+            icon.style.color = sceneData.color;
+
+            // 更新场景名称
+            document.getElementById('sceneName').textContent = sceneData.name;
+
+            // 更新置信度（随机生成）
+            const confidence = 75 + Math.random() * 20;
+            document.getElementById('confidenceFill').style.width = confidence + '%';
+            document.getElementById('confidenceFill').style.background = sceneData.color;
+            document.getElementById('confidenceText').textContent = `置信度: ${Math.round(confidence)}%`;
+
+            // 更新设备列表
+            updateDeviceList(sceneData.devices);
+
+            // 更新状态显示
+            document.getElementById('stateDisplay').innerHTML = '🎤 持续监听中';
+        }
+
+        // 更新设备列表
+        function updateDeviceList(devices) {
+            const container = document.getElementById('deviceList');
+            document.getElementById('deviceCount').textContent = devices.length;
+
+            container.innerHTML = devices.map(device => `
+                <div class="device-item">
+                    <div class="device-status ${device.on ? 'on' : 'off'}">
+                        ${device.on ? '✓' : '○'}
+                    </div>
+                    <div class="device-name">${device.name}</div>
+                    <div class="device-state">${device.state}</div>
+                </div>
+            `).join('');
+        }
+
+        // 更新传感器
+        function updateSensor(type) {
+            switch(type) {
+                case 'temp':
+                    const temp = document.getElementById('tempSlider').value;
+                    document.getElementById('tempValue').textContent = temp + '°C';
+                    document.getElementById('tempSliderValue').textContent = temp + '°C';
+                    break;
+                case 'humidity':
+                    const humidity = document.getElementById('humiditySlider').value;
+                    document.getElementById('humidityValue').textContent = humidity + '%';
+                    document.getElementById('humiditySliderValue').textContent = humidity + '%';
+                    break;
+                case 'voc':
+                    const voc = document.getElementById('vocSlider').value;
+                    document.getElementById('vocValue').textContent = voc;
+                    document.getElementById('vocSliderValue').textContent = voc;
+                    break;
+                case 'light':
+                    const light = document.getElementById('lightSlider').value;
+                    document.getElementById('lightSliderValue').textContent = light + ' lux';
+                    break;
+            }
+        }
+
+        // 更新音量
+        function updateVolume() {
+            const volume = document.getElementById('volumeSlider').value;
+            const icon = volume == 0 ? '🔇' : volume < 30 ? '🔉' : '🔊';
+            document.getElementById('volumeDisplay').textContent = `${icon} ${volume}%`;
+            document.getElementById('volumeSliderValue').textContent = volume + '%';
+        }
+
+        // 模拟唤醒词
+        function simulateWakeWord() {
+            const stateDisplay = document.getElementById('stateDisplay');
+
+            // 切换到监听状态
+            stateDisplay.innerHTML = '👁️ 唤醒词检测中...';
+            stateDisplay.className = 'status-item status-active processing';
+
+            // 模拟处理
+            setTimeout(() => {
+                stateDisplay.innerHTML = '🔄 处理语音指令...';
+            }, 500);
+
+            // 模拟响应
+            setTimeout(() => {
+                stateDisplay.innerHTML = '🔊 响应中...';
+            }, 1500);
+
+            // 返回监听
+            setTimeout(() => {
+                stateDisplay.innerHTML = '🎤 持续监听中';
+                stateDisplay.className = 'status-item status-active';
+            }, 3000);
+        }
+
+        // 切换自动演示
+        function toggleAutoDemo() {
+            const btn = document.getElementById('autoDemoBtn');
+            const indicator = document.getElementById('autoDemoIndicator');
+
+            if (autoDemoInterval) {
+                // 停止演示
+                clearInterval(autoDemoInterval);
+                autoDemoInterval = null;
+                btn.innerHTML = '▶️ 启动自动演示';
+                indicator.classList.remove('active');
+            } else {
+                // 启动演示
+                autoDemoIndex = 0;
+                btn.innerHTML = '⏹️ 停止自动演示';
+                indicator.classList.add('active');
+
+                // 立即切换到第一个场景
+                setScene(sceneOrder[autoDemoIndex]);
+
+                // 每3秒切换一次场景
+                autoDemoInterval = setInterval(() => {
+                    autoDemoIndex = (autoDemoIndex + 1) % sceneOrder.length;
+                    setScene(sceneOrder[autoDemoIndex]);
+                }, 3000);
+            }
+        }
+
+        // 更新运行时间
+        function updateUptime() {
+            uptimeSeconds++;
+            const hours = Math.floor(uptimeSeconds / 3600);
+            const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+            const seconds = uptimeSeconds % 60;
+
+            document.getElementById('uptimeDisplay').textContent =
+                `⏱️ ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

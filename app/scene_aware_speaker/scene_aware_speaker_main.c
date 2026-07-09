@@ -1,14 +1,17 @@
 /****************************************************************************
  * AI Scene-Aware Smart Speaker - Main Entry
  *
- * Modular architecture with local AI inference.
- * All processing runs on-device (no cloud dependency).
+ * Core Logic:
+ *   1. Continuously listen to ambient sound
+ *   2. Real-time scene recognition (home/sleep/cooking/working/entertainment)
+ *   3. Auto-trigger smart home actions when scene changes
+ *   4. Wake word detection for manual voice control (secondary)
  *
- * Modules:
- *   - audio_preprocess: SpeexDSP audio processing
+ * Architecture:
+ *   - audio_preprocess: SpeexDSP noise reduction, AGC, AEC
  *   - feature_extract:  MFCC feature extraction
  *   - scene_detect:     TFLite Micro scene classification
- *   - wake_word:        Wake word detection
+ *   - wake_word:        Wake word detection (secondary feature)
  *   - sensor_fusion:    SHTC3/SGP30/LTR553 sensor data
  *   - ai_agent:         Local decision engine
  *   - mihome_sim:       MiHome device simulator
@@ -60,9 +63,10 @@ static pthread_t g_scene_tid;
 static pthread_t g_voice_tid;
 static pthread_t g_sensor_tid;
 
-/* Audio buffer */
+/* Audio buffer - shared between threads */
 
 static uint8_t g_audio_buf[AUDIO_FRAME_SIZE];
+static pthread_mutex_t g_audio_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* MFCC buffer */
 
@@ -71,6 +75,7 @@ static float g_mfcc_buffer[MFCC_NUM_COEFFS];
 /* Sensor data */
 
 static sensor_data_t g_sensor_data;
+static pthread_mutex_t g_sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /****************************************************************************
  * Utility Functions
@@ -269,12 +274,14 @@ int speaker_modules_init(speaker_modules_t *modules)
   extern int lvgl_ui_update_scene(const scene_result_t *result);
   extern int lvgl_ui_update_actions(const agent_decision_t *decision);
   extern int lvgl_ui_update_state(app_state_t state);
+  extern int lvgl_ui_update_volume(int volume_pct);
   extern void lvgl_ui_cleanup(void);
 
   modules->ui_init = lvgl_ui_init;
   modules->ui_update_scene = lvgl_ui_update_scene;
   modules->ui_update_actions = lvgl_ui_update_actions;
   modules->ui_update_state = lvgl_ui_update_state;
+  modules->ui_update_volume = lvgl_ui_update_volume;
   modules->ui_cleanup = lvgl_ui_cleanup;
 
   ret = modules->ui_init();
@@ -324,24 +331,35 @@ void speaker_modules_cleanup(speaker_modules_t *modules)
  * Name: scene_detect_thread
  *
  * Description:
- *   Scene detection thread.
- *   Periodically reads audio, extracts features, and detects scene.
- *   Triggers AI Agent decisions when scene changes.
+ *   MAIN THREAD - Scene detection with auto-automation.
+ *
+ *   This is the PRIMARY function of the system:
+ *   1. Continuously read audio from microphone
+ *   2. Extract features and recognize scene
+ *   3. When scene changes, auto-trigger smart home actions
+ *   4. Update UI with current scene and actions
  *
  ****************************************************************************/
 
 void *scene_detect_thread(void *arg)
 {
-  printf("[THREAD] Scene detection thread started\n");
+  printf("[THREAD] Scene detection thread started (PRIMARY)\n");
+
+  scene_type_t last_scene = SCENE_UNKNOWN;
+  uint32_t scene_change_count = 0;
 
   while (g_running)
     {
-      /* Read audio frame */
+      /* Read audio frame (thread-safe) */
 
-      int nread = modules.audio_read(g_audio_buf, AUDIO_FRAME_SIZE);
+      int nread;
+      pthread_mutex_lock(&g_audio_mutex);
+      nread = modules.audio_read(g_audio_buf, AUDIO_FRAME_SIZE);
+      pthread_mutex_unlock(&g_audio_mutex);
+
       if (nread <= 0)
         {
-          usleep(10000);
+          usleep(10000); /* 10ms */
           continue;
         }
 
@@ -353,46 +371,57 @@ void *scene_detect_thread(void *arg)
       modules.feature_extract(samples, num_samples,
                               g_mfcc_buffer, MFCC_NUM_COEFFS);
 
-      /* Get sensor data */
+      /* Get sensor data (thread-safe) */
 
       sensor_data_t sensor;
-      modules.sensor_read(&sensor);
+      pthread_mutex_lock(&g_sensor_mutex);
+      sensor = g_sensor_data;
+      pthread_mutex_unlock(&g_sensor_mutex);
 
       /* Run scene detection */
 
       scene_result_t result = modules.scene_detect(g_mfcc_buffer, &sensor);
 
+      /* Update UI with current scene (always) */
+
+      modules.ui_update_scene(&result);
+
       /* Check for scene change */
 
-      if (result.scene != g_current_scene && result.scene != SCENE_UNKNOWN)
+      if (result.scene != last_scene && result.scene != SCENE_UNKNOWN)
         {
-          printf("[THREAD] Scene changed: %s -> %s\n",
-                 scene_type_to_string(g_current_scene),
+          scene_change_count++;
+          printf("[THREAD] === SCENE CHANGE #%d === %s -> %s\n",
+                 scene_change_count,
+                 scene_type_to_string(last_scene),
                  scene_type_to_string(result.scene));
 
           g_current_scene = result.scene;
+          last_scene = result.scene;
 
           /* Get AI Agent decision */
 
           agent_decision_t decision = modules.agent_decide(result.scene,
                                                            &sensor);
 
-          /* Execute MiHome actions */
+          /* Execute MiHome actions (simulate smart home control) */
+
+          printf("[THREAD] Executing automation for %s:\n",
+                 scene_type_to_string(result.scene));
 
           for (int i = 0; i < decision.num_actions; i++)
             {
               modules.mihome_execute(&decision.actions[i]);
             }
 
-          /* Update UI */
+          /* Update UI with actions */
 
-          modules.ui_update_scene(&result);
           modules.ui_update_actions(&decision);
         }
 
-      /* Sleep for detection interval */
+      /* Scene detection runs every 500ms for responsive detection */
 
-      usleep(SCENE_DETECT_INTERVAL_MS * 1000);
+      usleep(500000); /* 500ms */
     }
 
   printf("[THREAD] Scene detection thread exited\n");
@@ -403,28 +432,39 @@ void *scene_detect_thread(void *arg)
  * Name: voice_interaction_thread
  *
  * Description:
- *   Voice interaction thread.
- *   Continuously listens for wake word, then processes commands.
+ *   SECONDARY THREAD - Wake word detection for manual control.
+ *
+ *   This is a SECONDARY feature:
+ *   1. Continuously listen for wake word "你好 openvela"
+ *   2. When detected, switch to listening mode
+ *   3. Accept voice commands for manual device control
+ *   4. Return to normal scene detection after command
  *
  ****************************************************************************/
 
 void *voice_interaction_thread(void *arg)
 {
-  printf("[THREAD] Voice interaction thread started\n");
+  printf("[THREAD] Voice interaction thread started (SECONDARY)\n");
 
   while (g_running)
     {
-      /* Read audio frame */
+      /* Read audio frame (thread-safe) */
 
-      int nread = modules.audio_read(g_audio_buf, AUDIO_FRAME_SIZE);
+      int nread;
+      pthread_mutex_lock(&g_audio_mutex);
+      nread = modules.audio_read(g_audio_buf, AUDIO_FRAME_SIZE);
+      pthread_mutex_unlock(&g_audio_mutex);
+
       if (nread <= 0)
         {
-          usleep(10000);
+          usleep(10000); /* 10ms */
           continue;
         }
 
       int16_t *samples = (int16_t *)g_audio_buf;
       int num_samples = nread / sizeof(int16_t);
+
+      /* Only check wake word when in IDLE state */
 
       if (g_app_state == APP_STATE_IDLE)
         {
@@ -432,31 +472,38 @@ void *voice_interaction_thread(void *arg)
 
           if (modules.wakeword_detect(samples, num_samples))
             {
-              printf("[THREAD] Wake word detected!\n");
+              printf("[THREAD] === WAKE WORD DETECTED ===\n");
+              printf("[THREAD] Entering manual control mode\n");
 
               g_app_state = APP_STATE_LISTENING;
               modules.ui_update_state(g_app_state);
 
-              /* Simulate command processing */
+              /* TODO: Implement actual voice command processing
+               *
+               * 1. Play acknowledgment sound / TTS: "我在"
+               * 2. Record command audio (2-5 seconds)
+               * 3. Run ASR (speech-to-text)
+               * 4. Parse intent (e.g., "打开电视", "音量调大")
+               * 5. Execute manual control
+               * 6. Generate TTS response
+               *
+               * For now, simulate a short listening period
+               */
+
+              usleep(2000000); /* Simulate 2s listening */
 
               g_app_state = APP_STATE_PROCESSING;
               modules.ui_update_state(g_app_state);
 
-              /* TODO: Implement actual voice command processing
-               *
-               * 1. Record command audio
-               * 2. Run ASR (speech-to-text)
-               * 3. Parse intent
-               * 4. Execute command
-               * 5. Generate TTS response
-               */
-
-              usleep(1000000); /* Simulate processing time */
+              usleep(500000); /* Simulate processing */
 
               /* Return to idle */
 
               g_app_state = APP_STATE_IDLE;
               modules.ui_update_state(g_app_state);
+
+              printf("[THREAD] Manual control complete, "
+                     "resuming scene detection\n");
             }
         }
 
@@ -471,8 +518,8 @@ void *voice_interaction_thread(void *arg)
  * Name: sensor_read_thread
  *
  * Description:
- *   Sensor reading thread.
- *   Periodically reads sensor data for display and fusion.
+ *   Background thread for periodic sensor reading.
+ *   Updates shared sensor data for scene detection.
  *
  ****************************************************************************/
 
@@ -484,9 +531,19 @@ void *sensor_read_thread(void *arg)
     {
       /* Read sensor data */
 
-      modules.sensor_read(&g_sensor_data);
+      sensor_data_t new_data;
+      int ret = modules.sensor_read(&new_data);
 
-      /* Sleep for 1 second */
+      if (ret == 0 && new_data.valid)
+        {
+          /* Update shared sensor data (thread-safe) */
+
+          pthread_mutex_lock(&g_sensor_mutex);
+          g_sensor_data = new_data;
+          pthread_mutex_unlock(&g_sensor_mutex);
+        }
+
+      /* Read sensors every second */
 
       usleep(1000000);
     }
@@ -514,7 +571,22 @@ static void signal_handler(int sig)
  *
  * Description:
  *   Application main entry point.
- *   Initializes modules, starts threads, and runs main loop.
+ *
+ *   System Architecture:
+ *   ┌─────────────────────────────────────────────────────────┐
+ *   │                    Main Loop                            │
+ *   │                                                         │
+ *   │  Thread 1 (PRIMARY): Scene Detection + Auto Automation  │
+ *   │    Audio → MFCC → Scene → Agent → MiHome               │
+ *   │                                                         │
+ *   │  Thread 2 (SECONDARY): Wake Word + Manual Control       │
+ *   │    Audio → Wake Word → Voice Command → Manual Control   │
+ *   │                                                         │
+ *   │  Thread 3: Sensor Reading                               │
+ *   │    SHTC3/SGP30/LTR553 → Shared Data                    │
+ *   │                                                         │
+ *   │  Main Thread: LVGL UI Updates                           │
+ *   └─────────────────────────────────────────────────────────┘
  *
  ****************************************************************************/
 
@@ -529,6 +601,11 @@ int main(int argc, char *argv[])
   printf("[MAIN] Board: Gemini-S1 (R528, Dual-core Cortex-A7)\n");
   printf("[MAIN] Mode: Local AI (no cloud dependency)\n");
   printf("[MAIN] ============================================\n");
+  printf("[MAIN]\n");
+  printf("[MAIN] System Logic:\n");
+  printf("[MAIN]   PRIMARY:   Continuous scene detection + auto automation\n");
+  printf("[MAIN]   SECONDARY: Wake word for manual voice control\n");
+  printf("[MAIN] ============================================\n");
 
   /* Register signal handlers */
 
@@ -542,7 +619,7 @@ int main(int argc, char *argv[])
     {
       fprintf(stderr, "[MAIN] Module initialization failed: %d\n", ret);
       return EXIT_FAILURE;
-    }
+  }
 
   /* Initialize thread attributes */
 
@@ -565,9 +642,9 @@ int main(int argc, char *argv[])
       printf("[MAIN] Sensor read thread created\n");
     }
 
-  /* Start scene detection thread (medium priority) */
+  /* Start scene detection thread (PRIMARY - highest priority) */
 
-  param.sched_priority = 90;
+  param.sched_priority = 100;
   pthread_attr_setschedparam(&attr, &param);
   pthread_attr_setstacksize(&attr, 8192);
 
@@ -579,12 +656,12 @@ int main(int argc, char *argv[])
   else
     {
       pthread_setname_np(g_scene_tid, "scene_detect");
-      printf("[MAIN] Scene detection thread created\n");
+      printf("[MAIN] Scene detection thread created (PRIMARY)\n");
     }
 
-  /* Start voice interaction thread (highest priority) */
+  /* Start voice interaction thread (SECONDARY - medium priority) */
 
-  param.sched_priority = 100;
+  param.sched_priority = 90;
   pthread_attr_setschedparam(&attr, &param);
   pthread_attr_setstacksize(&attr, 8192);
 
@@ -596,7 +673,7 @@ int main(int argc, char *argv[])
   else
     {
       pthread_setname_np(g_voice_tid, "voice_interact");
-      printf("[MAIN] Voice interaction thread created\n");
+      printf("[MAIN] Voice interaction thread created (SECONDARY)\n");
     }
 
   pthread_attr_destroy(&attr);
@@ -630,6 +707,11 @@ int main(int argc, char *argv[])
   /* Cleanup modules */
 
   speaker_modules_cleanup(&g_modules);
+
+  /* Cleanup mutexes */
+
+  pthread_mutex_destroy(&g_audio_mutex);
+  pthread_mutex_destroy(&g_sensor_mutex);
 
   printf("[MAIN] AI Scene-Aware Smart Speaker stopped.\n");
   return EXIT_SUCCESS;

@@ -181,6 +181,7 @@ typedef struct
   int (*ui_update_scene)(const scene_result_t *result);
   int (*ui_update_actions)(const agent_decision_t *decision);
   int (*ui_update_state)(app_state_t state);
+  int (*ui_update_volume)(int volume_pct);
   void (*ui_cleanup)(void);
 } speaker_modules_t;
 
@@ -217,5 +218,14 @@ void *sensor_read_thread(void *arg);
 
 const char *scene_type_to_string(scene_type_t scene);
 const char *app_state_to_string(app_state_t state);
+
+/* LVGL UI additional functions */
+
+#ifdef CONFIG_GRAPHICS_LVGL
+#include <lvgl/lvgl.h>
+int lvgl_ui_update_volume(int volume_pct);
+int lvgl_ui_show_alert(const char *title, const char *message,
+                       lv_color_t color);
+#endif
 
 #endif /* __SCENE_AWARE_SPEAKER_H */
