@@ -359,6 +359,8 @@ distclean: clean
 libboard$(LIBEXT):
 	$(Q) cp $(TOPDIR)/../vendor/allwinnertech/libs/board/r528s3-gemini-s1/libboard_allwinner$(LIBEXT) $@
 else
+# Exclude secure_storage_test.c if it exists (depends on vendor/xiaomi/mitee_iot)
+CSRCS := $(filter-out secure_storage_test.c, $(CSRCS))
 include $(TOPDIR)/boards/Board.mk
 endif
 
@@ -371,6 +373,9 @@ endif
 AW_SRCDIR = $(TOPDIR)/arch/arm/src/chip
 CFLAGS += ${INCDIR_PREFIX}$(AW_SRCDIR)
 CFLAGS += ${INCDIR_PREFIX}$(AW_SRCDIR)/include/drivers
+
+# LVGL config header path
+CFLAGS += ${INCDIR_PREFIX}$(TOPDIR)/$(ARCH_BOARD_CUSTOM_DIR)/include
 
 
 RCRAWS += etc/lvx_video_config.json

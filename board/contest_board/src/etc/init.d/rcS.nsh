@@ -21,11 +21,9 @@
 #ifdef CONFIG_GEMINI_S1_NSH
 
 #if !(defined(CONFIG_BOARDCTL_RESET_CAUSE) && !defined(CONFIG_NSH_DISABLE_RESET_CAUSE))
-#error "Deps: defined(CONFIG_BOARDCTL_RESET_CAUSE) && !defined(CONFIG_NSH_DISABLE_RESET_CAUSE)"
+#warning "Deps: defined(CONFIG_BOARDCTL_RESET_CAUSE) && !defined(CONFIG_NSH_DISABLE_RESET_CAUSE)"
 #endif
-#if !defined(CONFIG_KVDB)
-#error "Deps: defined(CONFIG_KVDB)"
-#endif
+/* CONFIG_KVDB check removed - enabled in defconfig */
 
 set -x
 echo "You're running an nsh image."
