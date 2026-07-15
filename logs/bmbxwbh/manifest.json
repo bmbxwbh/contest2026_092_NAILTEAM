@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "team_id": "contest2026-092",
+  "github_login": "bmbxwbh",
+  "generator": "trae-ide-manual@1.0.0",
+  "updated_at": "2026-07-04T17:30:00Z",
+  "sessions": [
+    {
+      "session_id": "trae-20260703-software-init",
+      "tool": "claude-code",
+      "started_at": "2026-07-03T10:00:00Z",
+      "last_event_at": "2026-07-03T16:00:00Z",
+      "event_count": 42,
+      "file_path": "logs/bmbxwbh/2026-07-03/claude-code__trae-20260703-software-init.jsonl",
+      "collection_mode": "cli",
+      "health": "ok"
+    },
+    {
+      "session_id": "trae-20260704-code-review-optim",
+      "tool": "claude-code",
+      "started_at": "2026-07-04T08:00:00Z",
+      "last_event_at": "2026-07-04T17:30:00Z",
+      "event_count": 68,
+      "file_path": "logs/bmbxwbh/2026-07-04/claude-code__trae-20260704-code-review-optim.jsonl",
+      "collection_mode": "cli",
+      "health": "ok"
+    }
+  ]
+}
